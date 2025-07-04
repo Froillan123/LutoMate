@@ -1,0 +1,35 @@
+name: lutomate
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_native_splash: ^2.4.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/cooking_icon.png
+
+flutter_native_splash:
+  image: assets/cooking_icon.png
+  color: "#ffffff"
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/cooking_icon.png"

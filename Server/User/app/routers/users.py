@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+from sqlalchemy.exc import IntegrityError
 
 from .. import models, schemas, crud
 from ..database import SessionLocal
@@ -60,7 +61,19 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_username(db, user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
-    return crud.create_user(db, user)
+    db_email = crud.get_user_by_email(db, user.email)
+    if db_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        return crud.create_user(db, user)
+    except IntegrityError as e:
+        db.rollback()
+        # Check if it's a unique constraint violation for username or email
+        if 'users_email_key' in str(e.orig):
+            raise HTTPException(status_code=400, detail="Email already registered")
+        if 'users_username_key' in str(e.orig):
+            raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="Registration failed: Integrity error")
 
 class TokenResponse(BaseModel):
     access_token: str
