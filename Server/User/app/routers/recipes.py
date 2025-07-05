@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
+import re
 
 from .. import models, schemas, crud
 from ..database import SessionLocal
@@ -64,22 +65,26 @@ def ai_ingredients(dish: str = Query(None, description="Dish name"), db: Session
     section = None
     for line in response.split('\n'):
         line = line.strip()
-        if line.lower().startswith("ingredients"):
+        # Robust section detection (handles Markdown, colons, etc.)
+        if re.match(r"^\*?\*?ingredients\*?\*?:?", line.lower()):
             section = "ingredients"
             continue
-        if line.lower().startswith("steps"):
+        if re.match(r"^\*?\*?steps\*?\*?:?", line.lower()):
             section = "steps"
             continue
-        if line.lower().startswith("reference"):
+        if re.match(r"^\*?\*?reference\*?\*?:?", line.lower()):
             section = "reference"
-            reference = line.split(":", 1)[-1].strip()
+            # Try to extract the link if present
+            ref_match = re.search(r"(https?://\S+)", line)
+            reference = ref_match.group(1) if ref_match else line.split(":", 1)[-1].strip()
             continue
-        if section == "ingredients" and (line.startswith("-") or line.startswith("*")):
-            name = line.lstrip("-* ").strip()
+        if section == "ingredients" and (line.startswith("-") or line.startswith("*") or line[:1].isdigit()):
+            # Remove bullet, number, or asterisk
+            name = re.sub(r"^[\-*\d.\s]+", "", line)
             if name:
                 ingredients.append(name)
-        elif section == "steps" and (line[:1].isdigit() or line.startswith("-")):
-            step = line.split(".", 1)[-1].strip() if "." in line else line.lstrip("-").strip()
+        elif section == "steps" and (line[:1].isdigit() or line.startswith("-") or line.startswith("*")):
+            step = re.sub(r"^[\-*\d.\s]+", "", line)
             if step:
                 steps.append(step)
 

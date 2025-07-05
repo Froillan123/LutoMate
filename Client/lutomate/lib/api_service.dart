@@ -117,11 +117,12 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Defensive: always return a list of maps for ingredients
+        // Defensive: always return a list of strings for ingredients
         final rawIngredients = data['ingredients'] ?? [];
         final ingredients = rawIngredients.map((ing) {
-          if (ing is Map<String, dynamic>) return ing;
-          return {'name': ing.toString(), 'image': null};
+          if (ing is String) return ing;
+          if (ing is Map<String, dynamic>) return ing['name'] ?? ing.toString();
+          return ing.toString();
         }).toList();
         return {
           'success': true,

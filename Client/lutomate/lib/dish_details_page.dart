@@ -28,67 +28,86 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
   }
 
   Future<void> fetchDetails() async {
-    setState(() { loading = true; });
-    final prefs = await SharedPreferences.getInstance();
-    final cacheKey = 'recipe_${widget.dish}';
-    if (prefs.containsKey(cacheKey)) {
-      final cached = json.decode(prefs.getString(cacheKey)!);
-      setState(() {
-        ingredients = List<String>.from(cached['ingredients'] ?? []);
-        steps = List<String>.from(cached['steps'] ?? []);
-        reference = cached['reference'];
-        loading = false;
+    setState(() { 
+      loading = true; 
+      error = null;
+    });
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheKey = 'recipe_${widget.dish}';
+      
+      // Check cache first
+      if (prefs.containsKey(cacheKey)) {
+        final cached = json.decode(prefs.getString(cacheKey)!);
+        setState(() {
+          ingredients = List<String>.from(cached['ingredients'] ?? []);
+          steps = List<String>.from(cached['steps'] ?? []);
+          reference = cached['reference'];
+          loading = false;
+        });
+        return;
+      }
+      
+      // Fetch from API if not cached
+      final result = await apiService.getIngredients(widget.dish, widget.token);
+      if (result['success'] ?? true) {
+        final newIngredients = List<String>.from(result['ingredients'] ?? []);
+        final newSteps = List<String>.from(result['steps'] ?? []);
+        final newReference = result['reference'];
+        
+        setState(() {
+          ingredients = newIngredients;
+          steps = newSteps;
+          reference = newReference;
+        });
+        
+        // Save to local storage
+        await prefs.setString(cacheKey, json.encode({
+          'ingredients': newIngredients,
+          'steps': newSteps,
+          'reference': newReference,
+        }));
+      } else {
+        setState(() { 
+          error = result['message'] ?? 'Failed to fetch recipe details';
+        });
+      }
+    } catch (e) {
+      setState(() { 
+        error = 'Error: ${e.toString()}';
       });
-      return;
+    } finally {
+      setState(() { loading = false; });
     }
-    final result = await apiService.getIngredients(widget.dish, widget.token);
-    if (result['success'] ?? true) {
-      setState(() {
-        ingredients = List<String>.from(result['ingredients'] ?? []);
-        steps = List<String>.from(result['steps'] ?? []);
-        reference = result['reference'];
-      });
-      // Save to local storage
-      prefs.setString(cacheKey, json.encode({
-        'ingredients': ingredients,
-        'steps': steps,
-        'reference': reference,
-      }));
-    } else {
-      setState(() { error = result['message']; });
-    }
-    setState(() { loading = false; });
   }
 
   Widget _buildIngredientCard(String ingredient) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(14),
-              bottomLeft: Radius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD7BFA6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.fastfood, color: Colors.white, size: 20),
             ),
-            child: Container(
-              width: 60,
-              height: 60,
-              color: Colors.grey[300],
-              child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 0),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
                 ingredient,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
