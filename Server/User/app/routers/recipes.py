@@ -75,12 +75,15 @@ def ai_ingredients(dish: str = Query(None, description="Dish name")):
             if step:
                 steps.append(step)
 
-    # Fetch Unsplash images for each ingredient
+    # Ensure ingredients is always a list of maps
     ingredient_objs = []
     from ..crud import fetch_unsplash_image
     for ing in ingredients:
-        img = fetch_unsplash_image(ing)
-        ingredient_objs.append({"name": ing, "image": img})
+        if isinstance(ing, dict):
+            ingredient_objs.append(ing)
+        else:
+            img = fetch_unsplash_image(ing)
+            ingredient_objs.append({"name": ing, "image": img})
 
     return {
         "ingredients": ingredient_objs,
