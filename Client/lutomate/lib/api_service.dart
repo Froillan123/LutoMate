@@ -117,9 +117,17 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // Defensive: always return a list of maps for ingredients
+        final rawIngredients = data['ingredients'] ?? [];
+        final ingredients = rawIngredients.map((ing) {
+          if (ing is Map<String, dynamic>) return ing;
+          return {'name': ing.toString(), 'image': null};
+        }).toList();
         return {
           'success': true,
-          'ingredients': List<String>.from(data['ingredients'] ?? []),
+          'ingredients': ingredients,
+          'steps': List<String>.from(data['steps'] ?? []),
+          'reference': data['reference'],
         };
       } else {
         return {'success': false, 'message': 'Failed to load ingredients'};

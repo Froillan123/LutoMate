@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class DishDetailsPage extends StatefulWidget {
   final String dish;
@@ -12,7 +14,7 @@ class DishDetailsPage extends StatefulWidget {
 }
 
 class _DishDetailsPageState extends State<DishDetailsPage> {
-  List<Map<String, dynamic>> ingredients = [];
+  List<String> ingredients = [];
   List<String> steps = [];
   String? reference;
   bool loading = true;
@@ -27,24 +29,38 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
 
   Future<void> fetchDetails() async {
     setState(() { loading = true; });
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = 'recipe_${widget.dish}';
+    if (prefs.containsKey(cacheKey)) {
+      final cached = json.decode(prefs.getString(cacheKey)!);
+      setState(() {
+        ingredients = List<String>.from(cached['ingredients'] ?? []);
+        steps = List<String>.from(cached['steps'] ?? []);
+        reference = cached['reference'];
+        loading = false;
+      });
+      return;
+    }
     final result = await apiService.getIngredients(widget.dish, widget.token);
     if (result['success'] ?? true) {
-      final rawIngredients = result['ingredients'] ?? [];
-      ingredients = rawIngredients.map<Map<String, dynamic>>((ing) {
-        if (ing is Map<String, dynamic>) return ing;
-        return {'name': ing.toString(), 'image': null};
-      }).toList();
       setState(() {
+        ingredients = List<String>.from(result['ingredients'] ?? []);
         steps = List<String>.from(result['steps'] ?? []);
         reference = result['reference'];
       });
+      // Save to local storage
+      prefs.setString(cacheKey, json.encode({
+        'ingredients': ingredients,
+        'steps': steps,
+        'reference': reference,
+      }));
     } else {
       setState(() { error = result['message']; });
     }
     setState(() { loading = false; });
   }
 
-  Widget _buildIngredientCard(Map<String, dynamic> ingredient) {
+  Widget _buildIngredientCard(String ingredient) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -55,32 +71,19 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
               topLeft: Radius.circular(14),
               bottomLeft: Radius.circular(14),
             ),
-            child: ingredient['image'] != null
-                ? Image.network(
-                    ingredient['image'],
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 60,
-                      height: 60,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6)),
-                    ),
-                  )
-                : Container(
-                    width: 60,
-                    height: 60,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6)),
-                  ),
+            child: Container(
+              width: 60,
+              height: 60,
+              color: Colors.grey[300],
+              child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6)),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 0),
               child: Text(
-                ingredient['name'] ?? '',
+                ingredient,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ),

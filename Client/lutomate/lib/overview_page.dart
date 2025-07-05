@@ -16,10 +16,12 @@ class _OverviewPageState extends State<OverviewPage> {
   String? firstName;
   String? lastName;
   List<String> preferences = [];
+  List<String> filteredPreferences = [];
   bool loading = true;
   String? error;
   Map<String, String> images = {};
   final ApiService apiService = ApiService();
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -34,7 +36,8 @@ class _OverviewPageState extends State<OverviewPage> {
       setState(() {
         firstName = result['first_name'];
         lastName = result['last_name'];
-        preferences = result['preferences'];
+        preferences = List<String>.from(result['preferences'] ?? []);
+        filteredPreferences = preferences;
       });
       await fetchImages();
     } else {
@@ -66,6 +69,15 @@ class _OverviewPageState extends State<OverviewPage> {
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,
     );
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      searchQuery = value;
+      filteredPreferences = preferences
+          .where((p) => p.toLowerCase().contains(searchQuery.toLowerCase()))
+          .toList();
+    });
   }
 
   @override
@@ -167,12 +179,24 @@ class _OverviewPageState extends State<OverviewPage> {
                           ],
                         ),
                       ),
-                      // Search bar
+                      // Section title
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                        child: const Text(
+                          "Today's popular searches",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      // Search bar for preferences
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: TextField(
                           decoration: InputDecoration(
-                            hintText: 'Type ingredients...',
+                            hintText: 'Search your preferences...',
                             prefixIcon: Icon(Icons.search, color: mainColor),
                             filled: true,
                             fillColor: Colors.white,
@@ -182,33 +206,13 @@ class _OverviewPageState extends State<OverviewPage> {
                               borderSide: BorderSide.none,
                             ),
                           ),
+                          onChanged: _onSearchChanged,
                         ),
                       ),
-                      // Section title
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              "Today's popular searches",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            Text(
-                              'Updated ${TimeOfDay.now().format(context)}',
-                              style: const TextStyle(color: Colors.black45, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Grid of preferences
+                      // Grid of preferences with margin bottom
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                           child: GridView.builder(
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
@@ -216,9 +220,9 @@ class _OverviewPageState extends State<OverviewPage> {
                               mainAxisSpacing: 12,
                               childAspectRatio: 1.2,
                             ),
-                            itemCount: preferences.length,
+                            itemCount: filteredPreferences.length,
                             itemBuilder: (context, index) {
-                              final pref = preferences[index];
+                              final pref = filteredPreferences[index];
                               final imgUrl = images[pref];
                               return GestureDetector(
                                 onTap: () {

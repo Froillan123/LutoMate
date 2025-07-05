@@ -34,11 +34,19 @@ def ai_dishes(category: str = Query(None, description="Food category")):
     return {"dishes": dishes}
 
 @router.get("/ai_ingredients")
-def ai_ingredients(dish: str = Query(None, description="Dish name")):
+def ai_ingredients(dish: str = Query(None, description="Dish name"), db: Session = Depends(get_db)):
     print(f"[ai_ingredients] Received dish: {dish!r}")
     if not dish or not dish.strip():
         raise HTTPException(status_code=400, detail="Dish is required")
-    # Ask Gemini for ingredients, steps, and a reference link
+    # 1. Check if recipe is already cached in DB
+    db_recipe = db.query(models.Recipe).filter(models.Recipe.title.ilike(dish)).first()
+    if db_recipe and db_recipe.ingredients and db_recipe.steps:
+        return {
+            "ingredients": db_recipe.ingredients.split('\n'),
+            "steps": db_recipe.steps.split('\n'),
+            "reference": getattr(db_recipe, 'reference', '')
+        }
+    # 2. If not, call Gemini
     prompt = (
         f"For the dish '{dish}', provide:\n"
         f"1. A bullet list of main ingredients.\n"
@@ -75,18 +83,23 @@ def ai_ingredients(dish: str = Query(None, description="Dish name")):
             if step:
                 steps.append(step)
 
-    # Ensure ingredients is always a list of maps
-    ingredient_objs = []
-    from ..crud import fetch_unsplash_image
-    for ing in ingredients:
-        if isinstance(ing, dict):
-            ingredient_objs.append(ing)
-        else:
-            img = fetch_unsplash_image(ing)
-            ingredient_objs.append({"name": ing, "image": img})
+    # Save to DB for future use
+    db_recipe = models.Recipe(
+        title=dish,
+        ingredients='\n'.join(ingredients),
+        steps='\n'.join(steps),
+        image_url=None,
+        tags=[],
+        difficulty=None,
+        estimated_time=None,
+        created_by=None
+    )
+    db.add(db_recipe)
+    db.commit()
+    db.refresh(db_recipe)
 
     return {
-        "ingredients": ingredient_objs,
+        "ingredients": ingredients,
         "steps": steps,
         "reference": reference
     }
