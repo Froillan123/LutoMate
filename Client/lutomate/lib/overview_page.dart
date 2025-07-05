@@ -256,7 +256,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _currentIndex == 0 ? 'Home' : _currentIndex == 1 ? 'Voice' : 'History',
+                                    _currentIndex == 0 ? 'Home' : _currentIndex == 1 ? 'AI Chat' : 'History',
                                     style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 16,
@@ -341,8 +341,8 @@ class _OverviewPageState extends State<OverviewPage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.mic),
-            label: 'Voice',
+            icon: Icon(Icons.chat),
+            label: 'Ai Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),

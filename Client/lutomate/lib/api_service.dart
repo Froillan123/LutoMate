@@ -156,94 +156,6 @@ class ApiService {
     return null;
   }
 
-  // Save voice query
-  Future<Map<String, dynamic>> saveVoiceQuery(String queryText, String token) async {
-    final url = Uri.parse('$baseUrl/api/lutome/voice-query');
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({'query_text': queryText}),
-      );
-      if (response.statusCode == 200) {
-        return {'success': true};
-      } else {
-        return {'success': false, 'message': 'Failed to save voice query'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Error: $e'};
-    }
-  }
-
-  // Get voice history
-  Future<Map<String, dynamic>> getVoiceHistory(String token) async {
-    final url = Uri.parse('$baseUrl/api/lutome/voice-history');
-    try {
-      final response = await http.get(
-        url,
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'success': true,
-          'queries': List<Map<String, dynamic>>.from(data['queries'] ?? []),
-        };
-      } else {
-        return {'success': false, 'message': 'Failed to load voice history'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Error: $e'};
-    }
-  }
-
-  // Save search history
-  Future<Map<String, dynamic>> saveSearchHistory(String search, String token) async {
-    final url = Uri.parse('$baseUrl/api/lutome/search-history');
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(search),
-      );
-      if (response.statusCode == 200) {
-        return {'success': true};
-      } else {
-        return {'success': false, 'message': 'Failed to save search history'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Error: $e'};
-    }
-  }
-
-  // Get search history
-  Future<Map<String, dynamic>> getSearchHistory(String token) async {
-    final url = Uri.parse('$baseUrl/api/lutome/search-history');
-    try {
-      final response = await http.get(
-        url,
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'success': true,
-          'history': List<Map<String, dynamic>>.from(data['history'] ?? []),
-        };
-      } else {
-        return {'success': false, 'message': 'Failed to load search history'};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Error: $e'};
-    }
-  }
-
   // AI Conversation
   Future<Map<String, dynamic>> aiConversation(String userInput, String token) async {
     final url = Uri.parse('$baseUrl/api/lutome/recipes/ai_conversation');
@@ -254,7 +166,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(userInput),
+        body: json.encode({'user_input': userInput}),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

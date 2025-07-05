@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:permission_handler/permission_handler.dart';
 import 'api_service.dart';
-import 'category_dishes_page.dart';
-import 'smart_conversation_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class VoicePage extends StatefulWidget {
   final String token;
@@ -14,174 +11,109 @@ class VoicePage extends StatefulWidget {
 }
 
 class _VoicePageState extends State<VoicePage> {
-  bool isListening = false;
-  String recognizedText = '';
-  List<Map<String, dynamic>> searchHistory = [];
+  final TextEditingController _controller = TextEditingController();
   bool isLoading = false;
-  bool hasPermission = false;
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  final ApiService apiService = ApiService();
+  List<Map<String, dynamic>> aiSuggestions = [];
+  String? error;
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeSpeech();
-    _loadVoiceHistory();
-  }
-
-  Future<void> _initializeSpeech() async {
-    // Request microphone permission
-    final status = await Permission.microphone.request();
-    setState(() {
-      hasPermission = status.isGranted;
-    });
-
-    if (hasPermission) {
-      final available = await _speech.initialize(
-        onError: (error) {
-          print('Speech recognition error: $error');
-          setState(() {
-            isListening = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Speech recognition error: ${error.errorMsg}')),
-          );
-        },
-        onStatus: (status) {
-          print('Speech recognition status: $status');
-          if (status == 'done' || status == 'notListening') {
-            setState(() {
-              isListening = false;
-            });
-          }
-        },
-      );
-      if (!available) {
-        setState(() {
-          hasPermission = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speech recognition not available')),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Microphone permission denied')),
-      );
-    }
-  }
-
-  Future<void> _loadVoiceHistory() async {
-    final result = await apiService.getVoiceHistory(widget.token);
-    if (result['success']) {
-      setState(() {
-        searchHistory = List<Map<String, dynamic>>.from(result['queries'] ?? []);
-      });
-    }
-  }
-
-  void _startListening() async {
-    if (!hasPermission) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please grant microphone permission')),
-      );
-      return;
-    }
-
-    setState(() {
-      isListening = true;
-      recognizedText = '';
-    });
-
+  void _sendMessage() async {
+    final input = _controller.text.trim();
+    if (input.isEmpty) return;
+    setState(() { isLoading = true; error = null; });
     try {
-      await _speech.listen(
-        onResult: (result) {
-          setState(() {
-            recognizedText = result.recognizedWords;
-          });
-        },
-        listenFor: const Duration(seconds: 10),
-        pauseFor: const Duration(seconds: 3),
-        partialResults: true,
-        localeId: 'en_US',
-      );
-    } catch (e) {
-      setState(() {
-        isListening = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error starting speech recognition: $e')),
-      );
-    }
-  }
-
-  void _stopListening() async {
-    await _speech.stop();
-    setState(() {
-      isListening = false;
-    });
-  }
-
-  void _searchRecipe() async {
-    if (recognizedText.isEmpty) return;
-    
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // Save voice query to database
-      await apiService.saveVoiceQuery(recognizedText, widget.token);
-      
-      // Save search history
-      await apiService.saveSearchHistory(recognizedText, widget.token);
-      
-      // Reload voice history
-      await _loadVoiceHistory();
-
-      // Navigate to smart conversation page
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SmartConversationPage(token: widget.token),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error processing voice input: $e')),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  void _clearText() {
-    setState(() {
-      recognizedText = '';
-    });
-  }
-
-  String _formatTimestamp(String? timestamp) {
-    if (timestamp == null) return '';
-    
-    try {
-      final date = DateTime.parse(timestamp);
-      final now = DateTime.now();
-      final difference = now.difference(date);
-
-      if (difference.inMinutes < 60) {
-        return '${difference.inMinutes} minutes ago';
-      } else if (difference.inHours < 24) {
-        return '${difference.inHours} hours ago';
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays} days ago';
+      final result = await ApiService().aiConversation(input, widget.token);
+      if (result['success'] == false) {
+        setState(() { error = result['message'] ?? 'Failed to get suggestions'; });
       } else {
-        return '${date.day}/${date.month}/${date.year}';
+        setState(() {
+          aiSuggestions = List<Map<String, dynamic>>.from(result['suggestions'] ?? []);
+        });
       }
     } catch (e) {
-      return '';
+      setState(() { error = 'Error: $e'; });
+    } finally {
+      setState(() { isLoading = false; });
     }
+  }
+
+  Widget _buildResultCard(Map<String, dynamic> suggestion) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      color: const Color(0xFFF7E9D6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              suggestion['name'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFF8D6E63)),
+            ),
+            if (suggestion['description'] != null && suggestion['description'].toString().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Text(suggestion['description'], style: const TextStyle(fontSize: 15)),
+              ),
+            if (suggestion['ingredients'] != null && suggestion['ingredients'].toString().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black87, fontSize: 15),
+                    children: [
+                      const TextSpan(text: 'Ingredients: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      TextSpan(text: suggestion['ingredients']),
+                    ],
+                  ),
+                ),
+              ),
+            if (suggestion['time'] != null && suggestion['time'].toString().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black87, fontSize: 15),
+                    children: [
+                      const TextSpan(text: 'Time: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      TextSpan(text: suggestion['time']),
+                    ],
+                  ),
+                ),
+              ),
+            if (suggestion['difficulty'] != null && suggestion['difficulty'].toString().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black87, fontSize: 15),
+                    children: [
+                      const TextSpan(text: 'Difficulty: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      TextSpan(text: suggestion['difficulty']),
+                    ],
+                  ),
+                ),
+              ),
+            if (suggestion['reference'] != null && suggestion['reference'].toString().isNotEmpty)
+              GestureDetector(
+                onTap: () async {
+                  final url = Uri.parse(suggestion['reference']);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    suggestion['reference'],
+                    style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -189,211 +121,62 @@ class _VoicePageState extends State<VoicePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              // Header
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back, color: Color(0xFF8D6E63)),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Voice Search',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF8D6E63),
-                      ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Row(
+                children: const [
+                  Text(
+                    'AI Chat',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                      color: Color(0xFF8D6E63),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
-              
-              // Main Voice Interface
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Microphone Button
-                    GestureDetector(
-                      onTapDown: (_) => _startListening(),
-                      onTapUp: (_) => _stopListening(),
-                      onTapCancel: () => _stopListening(),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: isListening ? 140 : 120,
-                        height: isListening ? 140 : 120,
-                        decoration: BoxDecoration(
-                          color: isListening 
-                              ? const Color(0xFF8D6E63)
-                              : const Color(0xFFD7BFA6),
-                          borderRadius: BorderRadius.circular(isListening ? 70 : 60),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.brown.withOpacity(isListening ? 0.4 : 0.3),
-                              blurRadius: isListening ? 30 : 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          isListening ? Icons.mic : Icons.mic_none,
-                          color: Colors.white,
-                          size: isListening ? 70 : 60,
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Status Text
-                    Text(
-                      isListening ? 'Listening...' : 'Tap to speak',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: isListening 
-                            ? const Color(0xFF8D6E63)
-                            : Colors.grey[600],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Recognized Text Display
-                    if (recognizedText.isNotEmpty) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F5F2),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD7BFA6)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.record_voice_over, color: Color(0xFF8D6E63)),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Recognized:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF8D6E63),
-                                  ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: _clearText,
-                                  icon: const Icon(Icons.clear, color: Color(0xFF8D6E63)),
-                                  iconSize: 20,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              recognizedText,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF8D6E63),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Search Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: isLoading ? null : _searchRecipe,
-                          icon: isLoading 
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : const Icon(Icons.search, color: Colors.white),
-                          label: Text(isLoading ? 'Searching...' : 'Search Recipe'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD7BFA6),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
               ),
-              
-              // Search History
-              if (searchHistory.isNotEmpty) ...[
-                const Divider(height: 40),
-                const Text(
-                  'Recent Voice Searches',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF8D6E63),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            Expanded(
+              child: aiSuggestions.isEmpty
+                  ? const Center(child: Text('Type your request and get recipe suggestions!'))
+                  : ListView.builder(
+                      itemCount: aiSuggestions.length,
+                      itemBuilder: (context, index) => _buildResultCard(aiSuggestions[index]),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Type your request...'
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: searchHistory.length,
-                    itemBuilder: (context, index) {
-                      final item = searchHistory[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: ListTile(
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD7BFA6),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.mic, color: Colors.white, size: 20),
-                          ),
-                          title: Text(
-                            item['query_text'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(_formatTimestamp(item['created_at'])),
-                          trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFFD7BFA6), size: 16),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => CategoryDishesPage(
-                                  category: item['query_text'] ?? '',
-                                  token: widget.token,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Color(0xFF8D6E63)),
+                    onPressed: _sendMessage,
                   ),
-                ),
-              ],
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -30,13 +30,6 @@ class _CategoryDishesPageState extends State<CategoryDishesPage> {
       setState(() {
         dishes = result['dishes'];
       });
-      
-      // Save search history
-      try {
-        await apiService.saveSearchHistory(widget.category, widget.token);
-      } catch (e) {
-        print('Error saving search history: $e');
-      }
     } else {
       setState(() { error = result['message']; });
     }

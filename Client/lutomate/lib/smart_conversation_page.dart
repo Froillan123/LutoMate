@@ -215,8 +215,18 @@ class _SmartConversationPageState extends State<SmartConversationPage> {
                       Expanded(
                         child: GestureDetector(
                           onTapDown: (_) => _startListening(),
-                          onTapUp: (_) => _stopListening(),
-                          onTapCancel: () => _stopListening(),
+                          onTapUp: (_) {
+                            _stopListening();
+                            if (userInput.trim().isNotEmpty) {
+                              _sendMessage();
+                            }
+                          },
+                          onTapCancel: () {
+                            _stopListening();
+                            if (userInput.trim().isNotEmpty) {
+                              _sendMessage();
+                            }
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
