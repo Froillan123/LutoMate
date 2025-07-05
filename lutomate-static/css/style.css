@@ -607,6 +607,10 @@ footer {
     .navbar .dropdown.active > a i {
         transform: rotate(180deg);
     }
+    
+    .hero .container {
+        flex-direction: column-reverse;
+    }
 }
 
 /* Desktop Styles */
