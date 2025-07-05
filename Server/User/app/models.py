@@ -28,6 +28,7 @@ class Recipe(Base):
     image_url = Column(Text)
     ingredients = Column(Text, nullable=False)
     steps = Column(Text, nullable=False)
+    reference = Column(Text)
     tags = Column(JSONB, default=list)
     difficulty = Column(String(20))
     estimated_time = Column(Integer)
