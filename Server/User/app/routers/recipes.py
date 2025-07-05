@@ -9,32 +9,7 @@ from app.routers.users import get_current_user, get_db
 
 router = APIRouter(prefix="/api/lutome/recipes", tags=["recipes"])
 
-@router.post("/", response_model=schemas.RecipeOut)
-def create_recipe(recipe: schemas.RecipeCreate = Body(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.create_recipe(db, recipe, user_id=current_user.id)
-
-@router.get("/", response_model=List[schemas.RecipeOut])
-def list_recipes(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_recipes(db, skip=skip, limit=limit)
-
-@router.get("/{recipe_id}", response_model=schemas.RecipeOut)
-def get_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
-    db_recipe = crud.get_recipe(db, recipe_id)
-    if not db_recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-    return db_recipe
-
-@router.get("/recommendations", response_model=List[schemas.RecipeOut])
-def get_recommendations(user_id: UUID, db: Session = Depends(get_db)):
-    return crud.get_recommendations(db, user_id=user_id)
-
-@router.post("/ai_suggest")
-def ai_suggest(prompt: str = Body(..., embed=True)):
-    response = crud.call_gemini_api(prompt)
-    if not response:
-        raise HTTPException(status_code=500, detail="AI service unavailable or error.")
-    return {"suggestion": response}
-
+# AI endpoints FIRST
 @router.get("/ai_dishes")
 def ai_dishes(category: str = Query(None, description="Food category")):
     print(f"[ai_dishes] Received category: {category!r}")
@@ -59,7 +34,10 @@ def ai_dishes(category: str = Query(None, description="Food category")):
     return {"dishes": dishes}
 
 @router.get("/ai_ingredients")
-def ai_ingredients(dish: str = Query(..., description="Dish name")):
+def ai_ingredients(dish: str = Query(None, description="Dish name")):
+    print(f"[ai_ingredients] Received dish: {dish!r}")
+    if not dish or not dish.strip():
+        raise HTTPException(status_code=400, detail="Dish is required")
     prompt = f"List the main ingredients for the dish '{dish}'. Only return the ingredients as a bullet or numbered list."
     response = crud.call_gemini_api(prompt)
     if not response:
@@ -76,4 +54,31 @@ def ai_ingredients(dish: str = Query(..., description="Dish name")):
     if not ingredients:
         # fallback: just split lines
         ingredients = [l.strip() for l in response.split('\n') if l.strip()]
-    return {"ingredients": ingredients} 
+    return {"ingredients": ingredients}
+
+@router.post("/ai_suggest")
+def ai_suggest(prompt: str = Body(..., embed=True)):
+    response = crud.call_gemini_api(prompt)
+    if not response:
+        raise HTTPException(status_code=500, detail="AI service unavailable or error.")
+    return {"suggestion": response}
+
+# THEN the dynamic path routes
+@router.post("/", response_model=schemas.RecipeOut)
+def create_recipe(recipe: schemas.RecipeCreate = Body(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return crud.create_recipe(db, recipe, user_id=current_user.id)
+
+@router.get("/", response_model=List[schemas.RecipeOut])
+def list_recipes(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return crud.get_recipes(db, skip=skip, limit=limit)
+
+@router.get("/{recipe_id}", response_model=schemas.RecipeOut)
+def get_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
+    db_recipe = crud.get_recipe(db, recipe_id)
+    if not db_recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    return db_recipe
+
+@router.get("/recommendations", response_model=List[schemas.RecipeOut])
+def get_recommendations(user_id: UUID, db: Session = Depends(get_db)):
+    return crud.get_recommendations(db, user_id=user_id) 
