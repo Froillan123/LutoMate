@@ -3,7 +3,7 @@ import 'api_service.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 import 'category_dishes_page.dart';
-import 'voice_page.dart';
+import 'message_page.dart';
 import 'history_page.dart';
 
 class OverviewPage extends StatefulWidget {
@@ -50,11 +50,18 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 
   Future<void> fetchImages() async {
-    for (final pref in preferences) {
+    for (int i = 0; i < preferences.length; i++) {
+      final pref = preferences[i];
       if (!images.containsKey(pref)) {
-        final url = await apiService.getUnsplashImage(pref);
-        if (url != null) {
-          setState(() { images[pref] = url; });
+        try {
+          final url = await apiService.getOpenverseImage(pref);
+          if (url != null) {
+            setState(() { images[pref] = url; });
+          }
+          // Add small delay between requests to prevent buffer overflow
+          await Future.delayed(const Duration(milliseconds: 100));
+        } catch (e) {
+          print('Error fetching image for $pref: $e');
         }
       }
     }
@@ -203,8 +210,8 @@ class _OverviewPageState extends State<OverviewPage> {
     );
   }
 
-  Widget _buildVoiceTab() {
-    return VoicePage(token: widget.token);
+  Widget _buildMessageTab() {
+    return _MessageTab(token: widget.token);
   }
 
   Widget _buildHistoryTab() {
@@ -256,7 +263,7 @@ class _OverviewPageState extends State<OverviewPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _currentIndex == 0 ? 'Home' : _currentIndex == 1 ? 'AI Chat' : 'History',
+                                    _currentIndex == 0 ? 'Home' : _currentIndex == 1 ? 'Message AI' : 'History',
                                     style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 16,
@@ -315,7 +322,7 @@ class _OverviewPageState extends State<OverviewPage> {
                           index: _currentIndex,
                           children: [
                             _buildHomeTab(),
-                            _buildVoiceTab(),
+                            _buildMessageTab(),
                             _buildHistoryTab(),
                           ],
                         ),
@@ -341,14 +348,154 @@ class _OverviewPageState extends State<OverviewPage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Ai Chat',
+            icon: Icon(Icons.message),
+            label: 'Message AI',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'History',
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Simple message tab widget that shows input and navigates to message page
+class _MessageTab extends StatefulWidget {
+  final String token;
+  const _MessageTab({required this.token});
+
+  @override
+  State<_MessageTab> createState() => _MessageTabState();
+}
+
+class _MessageTabState extends State<_MessageTab> {
+  final TextEditingController _controller = TextEditingController();
+  bool isLoading = false;
+  String? error;
+
+  void _sendMessage() async {
+    final input = _controller.text.trim();
+    if (input.isEmpty) return;
+    setState(() { isLoading = true; error = null; });
+    try {
+      final result = await ApiService().aiConversation(input, widget.token);
+      if (result['success'] == false) {
+        setState(() { error = result['message'] ?? 'Failed to get suggestions'; });
+      } else {
+        // Navigate to message page with results
+        final suggestions = List<Map<String, dynamic>>.from(result['suggestions'] ?? []);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MessagePage(
+              token: widget.token,
+              userInput: input,
+              suggestions: suggestions,
+            ),
+          ),
+        );
+        // Clear the input after successful navigation
+        _controller.clear();
+      }
+    } catch (e) {
+      setState(() { error = 'Error: $e'; });
+    } finally {
+      setState(() { isLoading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Row(
+                children: const [
+                  Text(
+                    'Message AI',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                      color: Color(0xFF8D6E63),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
+              ),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            Expanded(
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 80,
+                      color: Color(0xFFD7BFA6),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Ask me anything about cooking!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Color(0xFF8D6E63),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'I can suggest recipes, ingredients, and cooking tips',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Type your request...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(25)),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Color(0xFF8D6E63)),
+                    onPressed: _sendMessage,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

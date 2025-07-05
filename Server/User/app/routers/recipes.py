@@ -16,7 +16,7 @@ def ai_dishes(category: str = Query(None, description="Food category")):
     print(f"[ai_dishes] Received category: {category!r}")
     if not category or not category.strip():
         raise HTTPException(status_code=400, detail="Category is required")
-    prompt = f"Give me a list of 20 popular dishes or recipes for the category '{category}'. Only return the dish names as a numbered list."
+    prompt = f"Give me a list of 10 popular dishes or recipes for the category '{category}'. Only return the dish names as a numbered list."
     response = crud.call_gemini_api(prompt)
     if not response:
         raise HTTPException(status_code=500, detail="AI service unavailable or error.")
@@ -132,7 +132,7 @@ def ai_suggest(prompt: str = Body(..., embed=True)):
 def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depends(get_db)):
     print(f"[ai_conversation] User input: {user_input!r}")
     
-    # Smart prompt to understand user intent and suggest dishes
+    # Smart prompt to understand user intent and suggest dishes with cooking instructions
     prompt = f"""
     User said: "{user_input}"
     
@@ -143,6 +143,7 @@ def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depen
     3. Main ingredients (3-5 key ingredients)
     4. Cooking time estimate
     5. Difficulty level (Easy/Medium/Hard)
+    6. Step-by-step cooking instructions (3-5 steps)
     
     Format your response as:
     DISH 1:
@@ -151,6 +152,7 @@ def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depen
     Ingredients: [Main ingredients separated by commas]
     Time: [Estimated cooking time]
     Difficulty: [Easy/Medium/Hard]
+    Instructions: [Step-by-step cooking instructions, numbered]
     
     DISH 2:
     Name: [Dish Name]
@@ -158,6 +160,7 @@ def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depen
     Ingredients: [Main ingredients separated by commas]
     Time: [Estimated cooking time]
     Difficulty: [Easy/Medium/Hard]
+    Instructions: [Step-by-step cooking instructions, numbered]
     
     And so on...
     """
@@ -186,6 +189,8 @@ def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depen
             current_dish['time'] = line.split(':', 1)[1].strip()
         elif line.startswith('Difficulty:'):
             current_dish['difficulty'] = line.split(':', 1)[1].strip()
+        elif line.startswith('Instructions:'):
+            current_dish['instructions'] = line.split(':', 1)[1].strip()
     
     if current_dish:
         dishes.append(current_dish)

@@ -12,7 +12,6 @@ dependencies:
     sdk: flutter
   http: ^1.2.1
   cupertino_icons: ^1.0.8
-  flutter_dotenv: ^5.0.2
   url_launcher: ^6.2.6
   shared_preferences: ^2.2.2
   speech_to_text: ^7.1.0
@@ -29,7 +28,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/cooking_icon.png
-    - .env
 
 flutter_native_splash:
   image: assets/cooking_icon.png

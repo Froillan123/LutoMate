@@ -17,6 +17,7 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
   List<String> ingredients = [];
   List<String> steps = [];
   String? reference;
+  String? dishImage;
   bool loading = true;
   String? error;
   final ApiService apiService = ApiService();
@@ -25,6 +26,20 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
   void initState() {
     super.initState();
     fetchDetails();
+    fetchDishImage();
+  }
+
+  Future<void> fetchDishImage() async {
+    try {
+      final imageUrl = await apiService.getOpenverseImage(widget.dish);
+      if (imageUrl != null) {
+        setState(() {
+          dishImage = imageUrl;
+        });
+      }
+    } catch (e) {
+      print('Error fetching dish image: $e');
+    }
   }
 
   Future<void> fetchDetails() async {
@@ -147,64 +162,98 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
           : error != null
               ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Ingredients:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                      const SizedBox(height: 12),
-                      ...ingredients.map(_buildIngredientCard),
-                      const SizedBox(height: 28),
-                      const Text('How to Cook:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                      const SizedBox(height: 12),
-                      ...steps.asMap().entries.map((e) => _buildStep(e.key, e.value)),
-                      if (reference != null && reference!.isNotEmpty) ...[
-                        const SizedBox(height: 28),
-                        const Text('Reference:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: () async {
-                            try {
-                              // Check if it's already a valid URL
-                              String urlString = reference!;
-                              if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
-                                // Try to make it a valid URL
-                                urlString = 'https://' + urlString;
-                              }
-                              final url = Uri.parse(urlString);
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
-                              } else {
-                                // Show error if can't launch
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Cannot open link: $urlString')),
-                                );
-                              }
-                            } catch (e) {
-                              // Show error if URL is invalid
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Invalid link: ${reference!}')),
-                              );
-                            }
-                          },
-                          child: Row(
-                            children: [
-                              Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  reference!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF1976D2),
-                                    decoration: TextDecoration.underline,
-                                    fontSize: 16,
-                                  ),
+                      // Dish Image Header
+                      if (dishImage != null)
+                        Container(
+                          width: double.infinity,
+                          height: 250,
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                              bottomRight: Radius.circular(20),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                              bottomRight: Radius.circular(20),
+                            ),
+                            child: Image.network(
+                              dishImage!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 60),
+                              ),
+                            ),
+                          ),
+                        ),
+                      
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Ingredients:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                            const SizedBox(height: 12),
+                            ...ingredients.map(_buildIngredientCard),
+                            const SizedBox(height: 28),
+                            const Text('How to Cook:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                            const SizedBox(height: 12),
+                            ...steps.asMap().entries.map((e) => _buildStep(e.key, e.value)),
+                            if (reference != null && reference!.isNotEmpty) ...[
+                              const SizedBox(height: 28),
+                              const Text('Reference:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                              const SizedBox(height: 8),
+                              InkWell(
+                                onTap: () async {
+                                  try {
+                                    // Check if it's already a valid URL
+                                    String urlString = reference!;
+                                    if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+                                      // Try to make it a valid URL
+                                      urlString = 'https://' + urlString;
+                                    }
+                                    final url = Uri.parse(urlString);
+                                    if (await canLaunchUrl(url)) {
+                                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                                    } else {
+                                      // Show error if can't launch
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Cannot open link: $urlString')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    // Show error if URL is invalid
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Invalid link: ${reference!}')),
+                                    );
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        reference!,
+                                        style: const TextStyle(
+                                          color: Color(0xFF1976D2),
+                                          decoration: TextDecoration.underline,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),

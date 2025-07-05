@@ -43,24 +43,34 @@ def get_user_by_id(db: Session, user_id: UUID):
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
-def fetch_unsplash_image(query: str) -> str:
-    api_key = os.getenv("UNSPLASH_API_KEY")
-    if not api_key:
-        return None
-    url = f"https://api.unsplash.com/search/photos?query={query}&client_id={api_key}&per_page=1"
+def fetch_openverse_image(query: str) -> str:
+    """Fetch image from Openverse API (free alternative to Unsplash)"""
+    # First try with commercial license filter
+    url = f"https://api.openverse.engineering/v1/images/?q={query}&page_size=1&filter=license_type:commercial"
     try:
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=10)
         data = resp.json()
-        if data.get("results"):
-            return data["results"][0]["urls"]["regular"]
-    except Exception:
-        pass
+        if data.get("results") and len(data["results"]) > 0:
+            return data["results"][0]["url"]
+    except Exception as e:
+        print(f"[Openverse] Error fetching commercial image for '{query}': {e}")
+    
+    # Fallback: try without commercial filter
+    try:
+        fallback_url = f"https://api.openverse.engineering/v1/images/?q={query}&page_size=1"
+        resp = requests.get(fallback_url, timeout=10)
+        data = resp.json()
+        if data.get("results") and len(data["results"]) > 0:
+            return data["results"][0]["url"]
+    except Exception as e:
+        print(f"[Openverse] Error fetching fallback image for '{query}': {e}")
+    
     return None
 
 def create_recipe(db: Session, recipe: schemas.RecipeCreate, user_id: UUID):
     image_url = recipe.image_url
     if not image_url:
-        image_url = fetch_unsplash_image(recipe.title)
+        image_url = fetch_openverse_image(recipe.title)
     db_recipe = models.Recipe(
         title=recipe.title,
         image_url=image_url,

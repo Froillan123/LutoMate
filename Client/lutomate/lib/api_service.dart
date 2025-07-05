@@ -1,10 +1,8 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
-  String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'https://lutomate.onrender.com';
-  String get unsplashApiKey => dotenv.env['UNSPLASH_API_KEY'] ?? '';
+  String get baseUrl => const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://lutomate.onrender.com');
 
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -138,21 +136,28 @@ class ApiService {
     }
   }
 
-  // Get Unsplash image
-  Future<String?> getUnsplashImage(String query) async {
-    if (unsplashApiKey.isEmpty) return null;
-    final url = Uri.parse(
-      'https://api.unsplash.com/search/photos?query=${Uri.encodeComponent(query)}&client_id=$unsplashApiKey&per_page=1',
-    );
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['results'] != null && data['results'].isNotEmpty) {
-          return data['results'][0]['urls']['regular'];
+  // Get Openverse image (free alternative to Unsplash)
+  Future<String?> getOpenverseImage(String query) async {
+    final queries = [
+      '[32m$query food[0m',
+      '[32m$query recipe[0m',
+      '[32m$query dish[0m',
+      query,
+    ];
+    for (final q in queries) {
+      final url = Uri.parse(
+        'https://api.openverse.engineering/v1/images/?q=${Uri.encodeComponent(q)}&page_size=1&filter=license_type:commercial',
+      );
+      try {
+        final response = await http.get(url).timeout(const Duration(seconds: 10));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['results'] != null && data['results'].isNotEmpty) {
+            return data['results'][0]['url'];
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
     return null;
   }
 
