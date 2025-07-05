@@ -36,7 +36,10 @@ def ai_suggest(prompt: str = Body(..., embed=True)):
     return {"suggestion": response}
 
 @router.get("/ai_dishes")
-def ai_dishes(category: str = Query(..., description="Food category")):
+def ai_dishes(category: str = Query(None, description="Food category")):
+    print(f"[ai_dishes] Received category: {category!r}")
+    if not category or not category.strip():
+        raise HTTPException(status_code=400, detail="Category is required")
     prompt = f"Give me a list of 20 popular dishes or recipes for the category '{category}'. Only return the dish names as a numbered list."
     response = crud.call_gemini_api(prompt)
     if not response:
