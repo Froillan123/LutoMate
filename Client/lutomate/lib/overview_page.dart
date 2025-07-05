@@ -4,7 +4,6 @@ import 'login_page.dart';
 import 'profile_page.dart';
 import 'category_dishes_page.dart';
 import 'message_page.dart';
-import 'history_page.dart';
 import 'popular_foods_page.dart';
 import 'feeds_page.dart';
 
