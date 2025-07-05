@@ -52,9 +52,9 @@ def ai_ingredients(dish: str = Query(None, description="Dish name"), db: Session
         f"For the dish '{dish}', provide:\n"
         f"1. A bullet list of main ingredients.\n"
         f"2. Step-by-step instructions on how to cook it.\n"
-        f"3. A reference link to a recipe or article about it.\n"
+        f"3. A YouTube video link or recipe website link for this dish.\n"
         f"Format:\n"
-        f"Ingredients:\n- ...\nSteps:\n1. ...\nReference: <link>"
+        f"Ingredients:\n- ...\nSteps:\n1. ...\nReference: https://youtube.com/watch?v=... or https://allrecipes.com/recipe/..."
     )
     response = crud.call_gemini_api(prompt)
     if not response:
@@ -76,8 +76,19 @@ def ai_ingredients(dish: str = Query(None, description="Dish name"), db: Session
             section = "reference"
             # Try to extract the link if present
             ref_match = re.search(r"(https?://\S+)", line)
-            reference = ref_match.group(1) if ref_match else line.split(":", 1)[-1].strip()
+            if ref_match:
+                reference = ref_match.group(1)
+            else:
+                # If no URL found, try to extract text after colon
+                reference = line.split(":", 1)[-1].strip()
             continue
+        elif section == "reference" and line.strip():
+            # Continue reading reference section for multi-line URLs
+            ref_match = re.search(r"(https?://\S+)", line)
+            if ref_match and not reference:
+                reference = ref_match.group(1)
+            elif not reference:
+                reference = line.strip()
         if section == "ingredients" and (line.startswith("-") or line.startswith("*") or line[:1].isdigit()):
             # Remove bullet, number, or asterisk
             name = re.sub(r"^[\-*\d.\s]+", "", line)
@@ -93,6 +104,7 @@ def ai_ingredients(dish: str = Query(None, description="Dish name"), db: Session
         title=dish,
         ingredients='\n'.join(ingredients),
         steps='\n'.join(steps),
+        reference=reference,
         image_url=None,
         tags=[],
         difficulty=None,
@@ -116,6 +128,74 @@ def ai_suggest(prompt: str = Body(..., embed=True)):
         raise HTTPException(status_code=500, detail="AI service unavailable or error.")
     return {"suggestion": response}
 
+@router.post("/ai_conversation")
+def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    print(f"[ai_conversation] User input: {user_input!r}")
+    
+    # Smart prompt to understand user intent and suggest dishes
+    prompt = f"""
+    User said: "{user_input}"
+    
+    Based on this request, suggest 3-5 specific dishes that would be perfect for the user.
+    For each dish, provide:
+    1. Dish name
+    2. Brief description (1 sentence)
+    3. Main ingredients (3-5 key ingredients)
+    4. Cooking time estimate
+    5. Difficulty level (Easy/Medium/Hard)
+    
+    Format your response as:
+    DISH 1:
+    Name: [Dish Name]
+    Description: [Brief description]
+    Ingredients: [Main ingredients separated by commas]
+    Time: [Estimated cooking time]
+    Difficulty: [Easy/Medium/Hard]
+    
+    DISH 2:
+    Name: [Dish Name]
+    Description: [Brief description]
+    Ingredients: [Main ingredients separated by commas]
+    Time: [Estimated cooking time]
+    Difficulty: [Easy/Medium/Hard]
+    
+    And so on...
+    """
+    
+    response = crud.call_gemini_api(prompt)
+    if not response:
+        raise HTTPException(status_code=500, detail="AI service unavailable or error.")
+    
+    # Parse the response into structured data
+    dishes = []
+    current_dish = {}
+    
+    for line in response.split('\n'):
+        line = line.strip()
+        if line.startswith('DISH') and line[4].isdigit():
+            if current_dish:
+                dishes.append(current_dish)
+            current_dish = {}
+        elif line.startswith('Name:'):
+            current_dish['name'] = line.split(':', 1)[1].strip()
+        elif line.startswith('Description:'):
+            current_dish['description'] = line.split(':', 1)[1].strip()
+        elif line.startswith('Ingredients:'):
+            current_dish['ingredients'] = line.split(':', 1)[1].strip()
+        elif line.startswith('Time:'):
+            current_dish['time'] = line.split(':', 1)[1].strip()
+        elif line.startswith('Difficulty:'):
+            current_dish['difficulty'] = line.split(':', 1)[1].strip()
+    
+    if current_dish:
+        dishes.append(current_dish)
+    
+    return {
+        "user_input": user_input,
+        "suggestions": dishes,
+        "ai_response": response
+    }
+
 # THEN the dynamic path routes
 @router.post("/", response_model=schemas.RecipeOut)
 def create_recipe(recipe: schemas.RecipeCreate = Body(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -134,4 +214,4 @@ def get_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
 
 @router.get("/recommendations", response_model=List[schemas.RecipeOut])
 def get_recommendations(user_id: UUID, db: Session = Depends(get_db)):
-    return crud.get_recommendations(db, user_id=user_id) 
+    return crud.get_recommendations(db, user_id=user_id)

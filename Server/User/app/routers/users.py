@@ -102,4 +102,62 @@ def update_user(update: schemas.UserCreate = Body(...), db: Session = Depends(ge
     user = crud.update_user(db, current_user.id, update)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user 
+    return user
+
+@router.post("/voice-query")
+def save_voice_query(query: schemas.VoiceQueryCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    voice_query = models.VoiceQuery(
+        user_id=current_user.id,
+        query_text=query.query_text,
+        created_at=datetime.utcnow()
+    )
+    db.add(voice_query)
+    db.commit()
+    db.refresh(voice_query)
+    return {"success": True, "message": "Voice query saved"}
+
+@router.get("/voice-history")
+def get_voice_history(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    queries = db.query(models.VoiceQuery).filter(
+        models.VoiceQuery.user_id == current_user.id
+    ).order_by(models.VoiceQuery.created_at.desc()).limit(20).all()
+    
+    return {
+        "queries": [
+            {
+                "id": query.id,
+                "query_text": query.query_text,
+                "created_at": query.created_at.isoformat() if query.created_at else None
+            }
+            for query in queries
+        ]
+    }
+
+@router.post("/search-history")
+def save_search_history(search: str = Body(..., embed=True), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Save search to voice queries for now (can create separate table later)
+    voice_query = models.VoiceQuery(
+        user_id=current_user.id,
+        query_text=search,
+        created_at=datetime.utcnow()
+    )
+    db.add(voice_query)
+    db.commit()
+    return {"success": True, "message": "Search history saved"}
+
+@router.get("/search-history")
+def get_search_history(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    queries = db.query(models.VoiceQuery).filter(
+        models.VoiceQuery.user_id == current_user.id
+    ).order_by(models.VoiceQuery.created_at.desc()).limit(50).all()
+    
+    return {
+        "history": [
+            {
+                "id": query.id,
+                "query_text": query.query_text,
+                "created_at": query.created_at.isoformat() if query.created_at else None
+            }
+            for query in queries
+        ]
+    } 

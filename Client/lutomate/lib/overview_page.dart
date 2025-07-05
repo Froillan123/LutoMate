@@ -3,6 +3,8 @@ import 'api_service.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 import 'category_dishes_page.dart';
+import 'voice_page.dart';
+import 'history_page.dart';
 
 class OverviewPage extends StatefulWidget {
   final String token;
@@ -22,6 +24,7 @@ class _OverviewPageState extends State<OverviewPage> {
   Map<String, String> images = {};
   final ApiService apiService = ApiService();
   String searchQuery = '';
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -80,9 +83,137 @@ class _OverviewPageState extends State<OverviewPage> {
     });
   }
 
+  Widget _buildHomeTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+          child: const Text(
+            "Today's popular searches",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        // Search bar for preferences
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search your preferences...',
+              prefixIcon: Icon(Icons.search, color: const Color(0xFFD7BFA6)),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: _onSearchChanged,
+          ),
+        ),
+        // Grid of preferences with margin bottom
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2,
+              ),
+              itemCount: filteredPreferences.length,
+              itemBuilder: (context, index) {
+                final pref = filteredPreferences[index];
+                final imgUrl = images[pref];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CategoryDishesPage(category: pref, token: widget.token),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        imgUrl != null
+                            ? Image.network(
+                                imgUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
+                                ),
+                              )
+                            : Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
+                              ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.black.withOpacity(0.2),
+                                Colors.black.withOpacity(0.5),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              pref,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    blurRadius: 4,
+                                    offset: Offset(1, 1),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVoiceTab() {
+    return VoicePage(token: widget.token);
+  }
+
+  Widget _buildHistoryTab() {
+    return HistoryPage(token: widget.token);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final mainColor = const Color(0xFFD7BFA6); // Light brown
+    final mainColor = const Color(0xFFD7BFA6);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -91,7 +222,6 @@ class _OverviewPageState extends State<OverviewPage> {
             : error != null
                 ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
                 : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Top bar with profile and settings dropdown
                       Container(
@@ -125,9 +255,9 @@ class _OverviewPageState extends State<OverviewPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 2),
-                                  const Text(
-                                    'Search',
-                                    style: TextStyle(
+                                  Text(
+                                    _currentIndex == 0 ? 'Home' : _currentIndex == 1 ? 'Voice' : 'History',
+                                    style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 16,
                                     ),
@@ -179,120 +309,46 @@ class _OverviewPageState extends State<OverviewPage> {
                           ],
                         ),
                       ),
-                      // Section title
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                        child: const Text(
-                          "Today's popular searches",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      // Search bar for preferences
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search your preferences...',
-                            prefixIcon: Icon(Icons.search, color: mainColor),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onChanged: _onSearchChanged,
-                        ),
-                      ),
-                      // Grid of preferences with margin bottom
+                      // Content based on selected tab
                       Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                          child: GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1.2,
-                            ),
-                            itemCount: filteredPreferences.length,
-                            itemBuilder: (context, index) {
-                              final pref = filteredPreferences[index];
-                              final imgUrl = images[pref];
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => CategoryDishesPage(category: pref, token: widget.token),
-                                    ),
-                                  );
-                                },
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      imgUrl != null
-                                          ? Image.network(
-                                              imgUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) => Container(
-                                                color: Colors.grey[300],
-                                                child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
-                                              ),
-                                            )
-                                          : Container(
-                                              color: Colors.grey[300],
-                                              child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
-                                            ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.black.withOpacity(0.2),
-                                              Colors.black.withOpacity(0.5),
-                                            ],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
-                                        ),
-                                      ),
-                                      Align(
-                                        alignment: Alignment.bottomLeft,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(12.0),
-                                          child: Text(
-                                            pref,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.black54,
-                                                  blurRadius: 4,
-                                                  offset: Offset(1, 1),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                        child: IndexedStack(
+                          index: _currentIndex,
+                          children: [
+                            _buildHomeTab(),
+                            _buildVoiceTab(),
+                            _buildHistoryTab(),
+                          ],
                         ),
                       ),
                     ],
                   ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFFD7BFA6),
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.mic),
+            label: 'Voice',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+        ],
       ),
     );
   }

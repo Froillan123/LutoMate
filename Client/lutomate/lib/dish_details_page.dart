@@ -164,18 +164,44 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: () async {
-                            final url = Uri.parse(reference!);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            try {
+                              // Check if it's already a valid URL
+                              String urlString = reference!;
+                              if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+                                // Try to make it a valid URL
+                                urlString = 'https://' + urlString;
+                              }
+                              final url = Uri.parse(urlString);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              } else {
+                                // Show error if can't launch
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Cannot open link: $urlString')),
+                                );
+                              }
+                            } catch (e) {
+                              // Show error if URL is invalid
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Invalid link: ${reference!}')),
+                              );
                             }
                           },
-                          child: Text(
-                            reference!,
-                            style: const TextStyle(
-                              color: Color(0xFF1976D2),
-                              decoration: TextDecoration.underline,
-                              fontSize: 16,
-                            ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  reference!,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1976D2),
+                                    decoration: TextDecoration.underline,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

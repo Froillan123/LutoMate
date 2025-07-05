@@ -20,9 +20,14 @@ class _RegisterPageState extends State<RegisterPage> {
   String _password = '';
   Set<String> _selectedPreferences = {};
   bool _loading = false;
+  bool _obscurePassword = true;
   int _step = 1;
   int _foodPage = 0;
   static const int _pageSize = 12;
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
 
   void _nextStep() {
     if (_formKey.currentState!.validate()) {
@@ -236,20 +241,39 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
                 onChanged: (v) => _email = v,
-                validator: (v) => v == null || v.isEmpty ? 'Enter email' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Enter email';
+                  }
+                  if (!_isValidEmail(v)) {
+                    return 'Enter a valid email address';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: Icon(Icons.lock, color: Color(0xFF8D6E63)),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: Color(0xFF8D6E63),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                   filled: true,
                   fillColor: Color(0xFFF8F5F2),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                obscureText: true,
+                obscureText: _obscurePassword,
                 onChanged: (v) => _password = v,
                 validator: (v) => v == null || v.isEmpty ? 'Enter password' : null,
               ),
@@ -271,6 +295,14 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   onPressed: _nextStep,
                 ),
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                icon: const Icon(Icons.login, color: Color(0xFF8D6E63)),
+                label: const Text('Already have an account? Login'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
               ),
             ],
           ),
@@ -367,15 +399,23 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         const SizedBox(height: 16),
-        TextButton.icon(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF8D6E63)),
-          label: const Text('Back'),
-          onPressed: () {
-            setState(() {
-              _step = 1;
-            });
-          },
-        ),
+                                TextButton.icon(
+                          icon: const Icon(Icons.arrow_back, color: Color(0xFF8D6E63)),
+                          label: const Text('Back'),
+                          onPressed: () {
+                            setState(() {
+                              _step = 1;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton.icon(
+                          icon: const Icon(Icons.login, color: Color(0xFF8D6E63)),
+                          label: const Text('Already have an account? Login'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
       ],
     );
   }

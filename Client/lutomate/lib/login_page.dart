@@ -15,6 +15,11 @@ class _LoginPageState extends State<LoginPage> {
   String _email = '';
   String _password = '';
   bool _loading = false;
+  bool _obscurePassword = true;
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -164,20 +169,39 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           onChanged: (v) => _email = v,
-                          validator: (v) => v == null || v.isEmpty ? 'Enter email' : null,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Enter email';
+                            }
+                            if (!_isValidEmail(v)) {
+                              return 'Enter a valid email address';
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           decoration: InputDecoration(
                             labelText: 'Password',
                             prefixIcon: Icon(Icons.lock, color: Color(0xFF8D6E63)),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                color: Color(0xFF8D6E63),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                             filled: true,
                             fillColor: Color(0xFFF8F5F2),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                           onChanged: (v) => _password = v,
                           validator: (v) => v == null || v.isEmpty ? 'Enter password' : null,
                         ),
