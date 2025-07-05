@@ -4,36 +4,37 @@ import 'dart:convert';
 class ApiService {
   static const String baseUrl = 'https://lutomate.onrender.com/api/lutome';
 
-  Future<Map<String, dynamic>> login(String username, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/login');
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'username': username,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
           'password': password,
-        },
+        }),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return {'success': true, 'token': data['access_token']};
       } else {
-        return {'success': false, 'message': 'Invalid username or password'};
+        return {'success': false, 'message': 'Incorrect email or password'};
       }
     } catch (e) {
       return {'success': false, 'message': 'Error connecting to server'};
     }
   }
 
-  Future<Map<String, dynamic>> register(String username, String email, String password, List<String> preferences) async {
+  Future<Map<String, dynamic>> register(String firstName, String lastName, String email, String password, List<String> preferences) async {
     final url = Uri.parse('$baseUrl/register');
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'username': username,
+          'first_name': firstName,
+          'last_name': lastName,
           'email': email,
           'password': password,
           'preferences': preferences,

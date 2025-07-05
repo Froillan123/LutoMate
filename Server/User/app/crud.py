@@ -16,9 +16,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_user(db: Session, user: schemas.UserCreate):
     hashed_password = get_password_hash(user.password)
     db_user = models.User(
-        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
         email=user.email,
         password=hashed_password,
+        role=user.role or 'user',
+        status=user.status or 'active',
         preferences=user.preferences or []
     )
     db.add(db_user)
@@ -26,8 +29,8 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
-def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(models.User).filter(models.User.username == username).first()
+def authenticate_user(db: Session, email: str, password: str):
+    user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
         return None
     if not verify_password(password, user.password):
@@ -36,9 +39,6 @@ def authenticate_user(db: Session, username: str, password: str):
 
 def get_user_by_id(db: Session, user_id: UUID):
     return db.query(models.User).filter(models.User.id == user_id).first()
-
-def get_user_by_username(db: Session, username: str):
-    return db.query(models.User).filter(models.User.username == username).first()
 
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
@@ -117,10 +117,16 @@ def update_user(db: Session, user_id: UUID, update: schemas.UserCreate):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         return None
-    if update.username:
-        user.username = update.username
+    if update.first_name:
+        user.first_name = update.first_name
+    if update.last_name:
+        user.last_name = update.last_name
     if update.email:
         user.email = update.email
+    if update.role:
+        user.role = update.role
+    if update.status:
+        user.status = update.status
     if update.preferences is not None:
         user.preferences = update.preferences
     if update.password:

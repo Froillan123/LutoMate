@@ -3,8 +3,11 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
 
 class UserBase(BaseModel):
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
+    role: Optional[str] = 'user'
+    status: Optional[str] = 'active'
     preferences: Optional[List[str]] = []
 
 class UserCreate(UserBase):

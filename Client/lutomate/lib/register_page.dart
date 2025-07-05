@@ -14,7 +14,8 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  String _username = '';
+  String _firstName = '';
+  String _lastName = '';
   String _email = '';
   String _password = '';
   Set<String> _selectedPreferences = {};
@@ -59,7 +60,8 @@ class _RegisterPageState extends State<RegisterPage> {
     });
     final api = ApiService();
     final result = await api.register(
-      _username,
+      _firstName,
+      _lastName,
       _email,
       _password,
       _selectedPreferences.toList(),
@@ -139,7 +141,7 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 8),
               TextFormField(
                 decoration: InputDecoration(
-                  labelText: 'Username',
+                  labelText: 'First Name',
                   prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
                   filled: true,
                   fillColor: Color(0xFFF8F5F2),
@@ -147,8 +149,22 @@ class _RegisterPageState extends State<RegisterPage> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                onChanged: (v) => _username = v,
-                validator: (v) => v == null || v.isEmpty ? 'Enter username' : null,
+                onChanged: (v) => _firstName = v,
+                validator: (v) => v == null || v.isEmpty ? 'Enter first name' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Last Name',
+                  prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
+                  filled: true,
+                  fillColor: Color(0xFFF8F5F2),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onChanged: (v) => _lastName = v,
+                validator: (v) => v == null || v.isEmpty ? 'Enter last name' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(

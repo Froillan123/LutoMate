@@ -12,7 +12,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  String _username = '';
+  String _email = '';
   String _password = '';
   bool _loading = false;
   String? _error;
@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
       _error = null;
     });
     final api = ApiService();
-    final result = await api.login(_username, _password);
+    final result = await api.login(_email, _password);
     if (result['success']) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => OverviewPage(token: result['token'])),
@@ -120,16 +120,16 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 8),
                         TextFormField(
                           decoration: InputDecoration(
-                            labelText: 'Username',
-                            prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email, color: Color(0xFF8D6E63)),
                             filled: true,
                             fillColor: Color(0xFFF8F5F2),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          onChanged: (v) => _username = v,
-                          validator: (v) => v == null || v.isEmpty ? 'Enter username' : null,
+                          onChanged: (v) => _email = v,
+                          validator: (v) => v == null || v.isEmpty ? 'Enter email' : null,
                         ),
                         const SizedBox(height: 16),
                         TextFormField(

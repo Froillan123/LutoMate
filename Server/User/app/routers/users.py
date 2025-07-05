@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Header
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -20,8 +19,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/lutome/login")
-
 router = APIRouter(prefix="/api/lutome", tags=["users"])
 
 def get_db():
@@ -38,13 +35,16 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(authorization: str = Header(...), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        if not authorization.startswith("Bearer "):
+            raise credentials_exception
+        token = authorization.replace("Bearer ", "")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
@@ -58,9 +58,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/register", response_model=schemas.UserOut)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_username(db, user.username)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
     db_email = crud.get_user_by_email(db, user.email)
     if db_email:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -68,11 +65,9 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         return crud.create_user(db, user)
     except IntegrityError as e:
         db.rollback()
-        # Check if it's a unique constraint violation for username or email
+        # Check if it's a unique constraint violation for email
         if 'users_email_key' in str(e.orig):
             raise HTTPException(status_code=400, detail="Email already registered")
-        if 'users_username_key' in str(e.orig):
-            raise HTTPException(status_code=400, detail="Username already registered")
         raise HTTPException(status_code=400, detail="Registration failed: Integrity error")
 
 class TokenResponse(BaseModel):
@@ -82,11 +77,15 @@ class TokenResponse(BaseModel):
 class LogoutResponse(BaseModel):
     message: str
 
-@router.post("/login", response_model=TokenResponse, summary="Login and get JWT token")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = crud.authenticate_user(db, form_data.username, form_data.password)
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@router.post("/login", response_model=TokenResponse, summary="Login with email and password")
+def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    user = crud.authenticate_user(db, login_data.email, login_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
