@@ -102,14 +102,14 @@ def call_gemini_api(prompt: str) -> str:
         print("[Gemini] Missing API key or URL!")
         return None
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
+        "Content-Type": "application/json"
     }
+    url = f"{api_url}?key={api_key}"
     data = {
         "contents": [{"parts": [{"text": prompt}]}]
     }
     try:
-        resp = requests.post(api_url, headers=headers, json=data)
+        resp = requests.post(url, headers=headers, json=data)
         print(f"[Gemini] Response status: {resp.status_code}")
         print(f"[Gemini] Response body: {resp.text}")
         resp.raise_for_status()
