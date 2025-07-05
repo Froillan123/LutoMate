@@ -95,7 +95,11 @@ def get_recommendations(db: Session, user_id: UUID, limit: int = 10):
 def call_gemini_api(prompt: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY")
     api_url = os.getenv("GEMINI_API_URL")
+    print(f"[Gemini] api_key: {api_key}")
+    print(f"[Gemini] api_url: {api_url}")
+    print(f"[Gemini] prompt: {prompt!r}")
     if not api_key or not api_url:
+        print("[Gemini] Missing API key or URL!")
         return None
     headers = {
         "Content-Type": "application/json",
@@ -106,11 +110,13 @@ def call_gemini_api(prompt: str) -> str:
     }
     try:
         resp = requests.post(api_url, headers=headers, json=data)
+        print(f"[Gemini] Response status: {resp.status_code}")
+        print(f"[Gemini] Response body: {resp.text}")
         resp.raise_for_status()
         result = resp.json()
-        # Gemini's response structure may vary; adjust as needed
         return result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
     except Exception as e:
+        print(f"[Gemini] Exception: {e}")
         return None
 
 def update_user(db: Session, user_id: UUID, update: schemas.UserCreate):
