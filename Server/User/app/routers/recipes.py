@@ -38,23 +38,55 @@ def ai_ingredients(dish: str = Query(None, description="Dish name")):
     print(f"[ai_ingredients] Received dish: {dish!r}")
     if not dish or not dish.strip():
         raise HTTPException(status_code=400, detail="Dish is required")
-    prompt = f"List the main ingredients for the dish '{dish}'. Only return the ingredients as a bullet or numbered list."
+    # Ask Gemini for ingredients, steps, and a reference link
+    prompt = (
+        f"For the dish '{dish}', provide:\n"
+        f"1. A bullet list of main ingredients.\n"
+        f"2. Step-by-step instructions on how to cook it.\n"
+        f"3. A reference link to a recipe or article about it.\n"
+        f"Format:\n"
+        f"Ingredients:\n- ...\nSteps:\n1. ...\nReference: <link>"
+    )
     response = crud.call_gemini_api(prompt)
     if not response:
         raise HTTPException(status_code=500, detail="AI service unavailable or error.")
-    # Parse Gemini's response into a list
-    ingredients = []
+
+    # Parse Gemini's response
+    ingredients, steps, reference = [], [], ""
+    section = None
     for line in response.split('\n'):
         line = line.strip()
-        if line and (line[0].isdigit() or line.startswith('-')):
-            # Remove number or dash
-            name = line.split('.', 1)[-1].strip() if '.' in line else line.lstrip('-').strip()
+        if line.lower().startswith("ingredients"):
+            section = "ingredients"
+            continue
+        if line.lower().startswith("steps"):
+            section = "steps"
+            continue
+        if line.lower().startswith("reference"):
+            section = "reference"
+            reference = line.split(":", 1)[-1].strip()
+            continue
+        if section == "ingredients" and (line.startswith("-") or line.startswith("*")):
+            name = line.lstrip("-* ").strip()
             if name:
                 ingredients.append(name)
-    if not ingredients:
-        # fallback: just split lines
-        ingredients = [l.strip() for l in response.split('\n') if l.strip()]
-    return {"ingredients": ingredients}
+        elif section == "steps" and (line[:1].isdigit() or line.startswith("-")):
+            step = line.split(".", 1)[-1].strip() if "." in line else line.lstrip("-").strip()
+            if step:
+                steps.append(step)
+
+    # Fetch Unsplash images for each ingredient
+    ingredient_objs = []
+    from ..crud import fetch_unsplash_image
+    for ing in ingredients:
+        img = fetch_unsplash_image(ing)
+        ingredient_objs.append({"name": ing, "image": img})
+
+    return {
+        "ingredients": ingredient_objs,
+        "steps": steps,
+        "reference": reference
+    }
 
 @router.post("/ai_suggest")
 def ai_suggest(prompt: str = Body(..., embed=True)):
