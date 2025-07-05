@@ -21,12 +21,36 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
   bool loading = true;
   String? error;
   final ApiService apiService = ApiService();
+  Map<int, String?> stepImages = {}; // step index to image url
 
   @override
   void initState() {
     super.initState();
     fetchDetails();
     fetchDishImage();
+    // Step images will be fetched after steps are loaded
+  }
+
+  Future<void> fetchStepImages() async {
+    for (int i = 0; i < steps.length; i++) {
+      final stepText = steps[i];
+      if (stepText.trim().isEmpty) continue;
+      try {
+        final imageUrl = await apiService.getOpenverseImage(stepText);
+        if (imageUrl != null) {
+          setState(() {
+            stepImages[i] = imageUrl;
+          });
+        } else {
+          setState(() {
+            stepImages[i] = '';
+          });
+        }
+        await Future.delayed(const Duration(milliseconds: 150));
+      } catch (e) {
+        setState(() { stepImages[i] = ''; });
+      }
+    }
   }
 
   Future<void> fetchDishImage() async {
@@ -61,6 +85,7 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
           reference = cached['reference'];
           loading = false;
         });
+        fetchStepImages();
         return;
       }
       
@@ -76,6 +101,7 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
           steps = newSteps;
           reference = newReference;
         });
+        fetchStepImages();
         
         // Save to local storage
         await prefs.setString(cacheKey, json.encode({
@@ -128,19 +154,55 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
   }
 
   Widget _buildStep(int idx, String step) {
+    final imageUrl = stepImages[idx];
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 13,
-            backgroundColor: const Color(0xFFD7BFA6),
-            child: Text('${idx + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(step, style: const TextStyle(fontSize: 16)),
+          if (imageUrl == null)
+            Container(
+              width: double.infinity,
+              height: 120,
+              color: Colors.grey[200],
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          else if (imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: 120,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  height: 120,
+                  child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              height: 120,
+              color: Colors.grey[300],
+              child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
+            ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundColor: const Color(0xFFD7BFA6),
+                child: Text('${idx + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(step, style: const TextStyle(fontSize: 16)),
+              ),
+            ],
           ),
         ],
       ),
@@ -197,59 +259,18 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Ingredients:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                            const SizedBox(height: 12),
-                            ...ingredients.map(_buildIngredientCard),
-                            const SizedBox(height: 28),
                             const Text('How to Cook:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
                             const SizedBox(height: 12),
                             ...steps.asMap().entries.map((e) => _buildStep(e.key, e.value)),
+                            const SizedBox(height: 28),
+                            const Text('Ingredients:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                            const SizedBox(height: 12),
+                            ...ingredients.map(_buildIngredientCard),
                             if (reference != null && reference!.isNotEmpty) ...[
                               const SizedBox(height: 28),
                               const Text('Reference:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                               const SizedBox(height: 8),
-                              InkWell(
-                                onTap: () async {
-                                  try {
-                                    // Check if it's already a valid URL
-                                    String urlString = reference!;
-                                    if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
-                                      // Try to make it a valid URL
-                                      urlString = 'https://' + urlString;
-                                    }
-                                    final url = Uri.parse(urlString);
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                                    } else {
-                                      // Show error if can't launch
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Cannot open link: $urlString')),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    // Show error if URL is invalid
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Invalid link: ${reference!}')),
-                                    );
-                                  }
-                                },
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        reference!,
-                                        style: const TextStyle(
-                                          color: Color(0xFF1976D2),
-                                          decoration: TextDecoration.underline,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              _buildReferenceWidget(reference!),
                             ],
                           ],
                         ),
@@ -258,5 +279,47 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
                   ),
                 ),
     );
+  }
+
+  Widget _buildReferenceWidget(String reference) {
+    final trimmed = reference.trim();
+    final isUrl = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+    if (isUrl) {
+      return InkWell(
+        onTap: () async {
+          final url = Uri.parse(trimmed);
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            // Show error if can't launch
+            // Use a BuildContext if needed
+          }
+        },
+        child: Row(
+          children: [
+            Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                trimmed,
+                style: const TextStyle(
+                  color: Color(0xFF1976D2),
+                  decoration: TextDecoration.underline,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Text(
+        trimmed,
+        style: const TextStyle(
+          color: Colors.black87,
+          fontSize: 16,
+        ),
+      );
+    }
   }
 } 

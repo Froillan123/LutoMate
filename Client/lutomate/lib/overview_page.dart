@@ -5,6 +5,8 @@ import 'profile_page.dart';
 import 'category_dishes_page.dart';
 import 'message_page.dart';
 import 'history_page.dart';
+import 'popular_foods_page.dart';
+import 'feeds_page.dart';
 
 class OverviewPage extends StatefulWidget {
   final String token;
@@ -98,7 +100,7 @@ class _OverviewPageState extends State<OverviewPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
           child: const Text(
-            "Today's popular searches",
+            "User's Preferences",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -214,8 +216,12 @@ class _OverviewPageState extends State<OverviewPage> {
     return _MessageTab(token: widget.token);
   }
 
-  Widget _buildHistoryTab() {
-    return HistoryPage(token: widget.token);
+  Widget _buildFeedsTab() {
+    return const FeedsPage();
+  }
+
+  Widget _buildPopularFoodsTab() {
+    return const PopularFoodsPage();
   }
 
   @override
@@ -263,7 +269,13 @@ class _OverviewPageState extends State<OverviewPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _currentIndex == 0 ? 'Home' : _currentIndex == 1 ? 'Message AI' : 'History',
+                                    _currentIndex == 0
+                                        ? 'Home'
+                                        : _currentIndex == 1
+                                            ? 'Popular Foods'
+                                            : _currentIndex == 2
+                                                ? 'Feeds'
+                                                : '',
                                     style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 16,
@@ -322,8 +334,9 @@ class _OverviewPageState extends State<OverviewPage> {
                           index: _currentIndex,
                           children: [
                             _buildHomeTab(),
+                            _buildPopularFoodsTab(),
                             _buildMessageTab(),
-                            _buildHistoryTab(),
+                            _buildFeedsTab(),
                           ],
                         ),
                       ),
@@ -348,12 +361,16 @@ class _OverviewPageState extends State<OverviewPage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.star),
+            label: 'Popular',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.message),
             label: 'Message AI',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
+            icon: Icon(Icons.rss_feed),
+            label: 'Feeds',
           ),
         ],
       ),

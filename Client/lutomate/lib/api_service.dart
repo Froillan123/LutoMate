@@ -138,26 +138,39 @@ class ApiService {
 
   // Get Openverse image (free alternative to Unsplash)
   Future<String?> getOpenverseImage(String query) async {
-    final queries = [
-      '[32m$query food[0m',
-      '[32m$query recipe[0m',
-      '[32m$query dish[0m',
-      query,
-    ];
-    for (final q in queries) {
-      final url = Uri.parse(
-        'https://api.openverse.engineering/v1/images/?q=${Uri.encodeComponent(q)}&page_size=1&filter=license_type:commercial',
-      );
-      try {
-        final response = await http.get(url).timeout(const Duration(seconds: 10));
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['results'] != null && data['results'].isNotEmpty) {
-            return data['results'][0]['url'];
-          }
+    final q = '$query food';
+    final url = Uri.parse(
+      'https://api.openverse.engineering/v1/images/?q=${Uri.encodeComponent(q)}&page_size=1&filter=license_type:commercial',
+    );
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['results'] != null && data['results'].isNotEmpty) {
+          return data['results'][0]['url'];
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
+    // Fallback to Unsplash if Openverse fails
+    return await _getUnsplashImage(query);
+  }
+
+  // Fallback: Get Unsplash image if Openverse fails
+  Future<String?> _getUnsplashImage(String query) async {
+    const unsplashAccessKey = 'AMiiTtkCj8_yLdgKH1qFS9M_uXBZys5VKpxN7whexoA';
+    final q = '$query food';
+    final url = Uri.parse(
+      'https://api.unsplash.com/search/photos?query=${Uri.encodeComponent(q)}&per_page=1&client_id=$unsplashAccessKey',
+    );
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['results'] != null && data['results'].isNotEmpty) {
+          return data['results'][0]['urls']['regular'];
+        }
+      }
+    } catch (_) {}
     return null;
   }
 

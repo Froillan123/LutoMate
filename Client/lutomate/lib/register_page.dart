@@ -343,7 +343,17 @@ class _RegisterPageState extends State<RegisterPage> {
               onSelected: (val) {
                 setState(() {
                   if (val) {
-                    _selectedPreferences.add(food);
+                    if (_selectedPreferences.length < 5) {
+                      _selectedPreferences.add(food);
+                    } else {
+                      // Show a SnackBar if trying to select more than 5
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('You can select up to 5 preferences only.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   } else {
                     _selectedPreferences.remove(food);
                   }
@@ -399,23 +409,23 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         const SizedBox(height: 16),
-                                TextButton.icon(
-                          icon: const Icon(Icons.arrow_back, color: Color(0xFF8D6E63)),
-                          label: const Text('Back'),
-                          onPressed: () {
-                            setState(() {
-                              _step = 1;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton.icon(
-                          icon: const Icon(Icons.login, color: Color(0xFF8D6E63)),
-                          label: const Text('Already have an account? Login'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
+        TextButton.icon(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF8D6E63)),
+          label: const Text('Back'),
+          onPressed: () {
+            setState(() {
+              _step = 1;
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          icon: const Icon(Icons.login, color: Color(0xFF8D6E63)),
+          label: const Text('Already have an account? Login'),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
       ],
     );
   }

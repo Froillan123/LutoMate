@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'dish_details_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class CategoryDishesPage extends StatefulWidget {
   final String category;
@@ -26,17 +28,33 @@ class _CategoryDishesPageState extends State<CategoryDishesPage> {
 
   Future<void> fetchDishes() async {
     setState(() { loading = true; });
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = 'dishes_${widget.category}';
+
+    // Check cache first
+    if (prefs.containsKey(cacheKey)) {
+      final cached = json.decode(prefs.getString(cacheKey)!);
+      setState(() {
+        dishes = List<String>.from(cached);
+        loading = false;
+      });
+      fetchDishImages();
+      return;
+    }
+
     final result = await apiService.getDishes(widget.category, widget.token);
     if (result['success']) {
       setState(() {
         dishes = result['dishes'];
+        loading = false;
       });
-      // Fetch images for each dish
+      // Save to cache
+      await prefs.setString(cacheKey, json.encode(result['dishes']));
+      // Fetch images for each dish (do not block UI)
       fetchDishImages();
     } else {
-      setState(() { error = result['message']; });
+      setState(() { error = result['message']; loading = false; });
     }
-    setState(() { loading = false; });
   }
 
   Future<void> fetchDishImages() async {
@@ -65,6 +83,24 @@ class _CategoryDishesPageState extends State<CategoryDishesPage> {
         title: Text(widget.category),
         backgroundColor: mainColor,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              final cacheKey = 'dishes_${widget.category}';
+              await prefs.remove(cacheKey);
+              setState(() {
+                dishes = [];
+                dishImages.clear();
+                loading = true;
+                error = null;
+              });
+              await fetchDishes();
+            },
+          ),
+        ],
       ),
       backgroundColor: Colors.grey[50],
       body: loading
@@ -175,41 +211,47 @@ class _CategoryDishesPageState extends State<CategoryDishesPage> {
                               ),
                             ),
                             // Dish Name and View Recipe
-                            Expanded(
-                              flex: 1,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        dish,
+                            Container(
+                              // Give the lower section a background color and flexible height
+                              decoration: BoxDecoration(
+                                color: Color(0xFFD7BFA6), // main color for contrast
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(16),
+                                  bottomRight: Radius.circular(16),
+                                ),
+                              ),
+                              constraints: BoxConstraints(minHeight: 80), // Minimum height, can grow
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min, // Let it grow as needed
+                                children: [
+                                  Text(
+                                    dish,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.restaurant, size: 12, color: Colors.white),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'View Recipe',
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
+                                          fontSize: 10,
                                           color: Colors.white,
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.restaurant, size: 12, color: Colors.white),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'View Recipe',
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ],
