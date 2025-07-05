@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
@@ -33,4 +33,44 @@ def ai_suggest(prompt: str = Body(..., embed=True)):
     response = crud.call_gemini_api(prompt)
     if not response:
         raise HTTPException(status_code=500, detail="AI service unavailable or error.")
-    return {"suggestion": response} 
+    return {"suggestion": response}
+
+@router.get("/ai_dishes")
+def ai_dishes(category: str = Query(..., description="Food category")):
+    prompt = f"Give me a list of 20 popular dishes or recipes for the category '{category}'. Only return the dish names as a numbered list."
+    response = crud.call_gemini_api(prompt)
+    if not response:
+        raise HTTPException(status_code=500, detail="AI service unavailable or error.")
+    # Parse Gemini's response into a list
+    dishes = []
+    for line in response.split('\n'):
+        line = line.strip()
+        if line and (line[0].isdigit() or line.startswith('-')):
+            # Remove number or dash
+            name = line.split('.', 1)[-1].strip() if '.' in line else line.lstrip('-').strip()
+            if name:
+                dishes.append(name)
+    if not dishes:
+        # fallback: just split lines
+        dishes = [l.strip() for l in response.split('\n') if l.strip()]
+    return {"dishes": dishes}
+
+@router.get("/ai_ingredients")
+def ai_ingredients(dish: str = Query(..., description="Dish name")):
+    prompt = f"List the main ingredients for the dish '{dish}'. Only return the ingredients as a bullet or numbered list."
+    response = crud.call_gemini_api(prompt)
+    if not response:
+        raise HTTPException(status_code=500, detail="AI service unavailable or error.")
+    # Parse Gemini's response into a list
+    ingredients = []
+    for line in response.split('\n'):
+        line = line.strip()
+        if line and (line[0].isdigit() or line.startswith('-')):
+            # Remove number or dash
+            name = line.split('.', 1)[-1].strip() if '.' in line else line.lstrip('-').strip()
+            if name:
+                ingredients.append(name)
+    if not ingredients:
+        # fallback: just split lines
+        ingredients = [l.strip() for l in response.split('\n') if l.strip()]
+    return {"ingredients": ingredients} 

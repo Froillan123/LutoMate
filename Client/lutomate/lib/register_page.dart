@@ -20,7 +20,6 @@ class _RegisterPageState extends State<RegisterPage> {
   String _password = '';
   Set<String> _selectedPreferences = {};
   bool _loading = false;
-  String? _error;
   int _step = 1;
   int _foodPage = 0;
   static const int _pageSize = 12;
@@ -38,17 +37,79 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Registration Successful!'),
-        content: const Text('You have successfully registered your account.'),
+        icon: Icon(
+          Icons.check_circle,
+          color: Colors.green[600],
+          size: 48,
+        ),
+        title: const Text(
+          'Registration Successful!',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8D6E63),
+          ),
+        ),
+        content: const Text(
+          'You have successfully registered your account.',
+          style: TextStyle(fontSize: 16),
+        ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // close dialog
               Navigator.of(context).pop(); // go back to login
             },
-            child: const Text('Go to Login'),
+            child: const Text(
+              'Go to Login',
+              style: TextStyle(
+                color: Color(0xFFD7BFA6),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.orange[600],
+          size: 48,
+        ),
+        title: const Text(
+          'Registration Failed',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8D6E63),
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Color(0xFFD7BFA6),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }
@@ -56,7 +117,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _register() async {
     setState(() {
       _loading = true;
-      _error = null;
     });
     final api = ApiService();
     final result = await api.register(
@@ -72,9 +132,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (result['success']) {
       _showSuccessDialog();
     } else {
-      setState(() {
-        _error = result['message'] ?? 'Registration failed';
-      });
+      _showErrorDialog(result['message'] ?? 'Registration failed');
     }
   }
 
@@ -289,12 +347,6 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
           ],
         ),
-        const SizedBox(height: 8),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(_error!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-          ),
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,

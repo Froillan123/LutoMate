@@ -15,12 +15,49 @@ class _LoginPageState extends State<LoginPage> {
   String _email = '';
   String _password = '';
   bool _loading = false;
-  String? _error;
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.orange[600],
+          size: 48,
+        ),
+        title: const Text(
+          'Login Failed',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8D6E63),
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Color(0xFFD7BFA6),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
 
   Future<void> _login() async {
     setState(() {
       _loading = true;
-      _error = null;
     });
     final api = ApiService();
     final result = await api.login(_email, _password);
@@ -29,9 +66,7 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (_) => OverviewPage(token: result['token'])),
       );
     } else {
-      setState(() {
-        _error = result['message'] ?? 'Login failed';
-      });
+      _showErrorDialog(result['message'] ?? 'Login failed');
     }
     setState(() {
       _loading = false;
@@ -147,15 +182,6 @@ class _LoginPageState extends State<LoginPage> {
                           validator: (v) => v == null || v.isEmpty ? 'Enter password' : null,
                         ),
                         const SizedBox(height: 24),
-                        if (_error != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Text(
-                              _error!,
-                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
                         _loading
                             ? const Center(child: CircularProgressIndicator(color: Color(0xFF8D6E63)))
                             : SizedBox(

@@ -1,45 +1,294 @@
 import 'package:flutter/material.dart';
+import 'api_service.dart';
+import 'login_page.dart';
+import 'profile_page.dart';
+import 'category_dishes_page.dart';
 
-class OverviewPage extends StatelessWidget {
+class OverviewPage extends StatefulWidget {
   final String token;
   const OverviewPage({super.key, required this.token});
 
   @override
+  State<OverviewPage> createState() => _OverviewPageState();
+}
+
+class _OverviewPageState extends State<OverviewPage> {
+  String? firstName;
+  String? lastName;
+  List<String> preferences = [];
+  bool loading = true;
+  String? error;
+  Map<String, String> images = {};
+  final ApiService apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfile();
+  }
+
+  Future<void> fetchProfile() async {
+    setState(() { loading = true; });
+    final result = await apiService.getProfile(widget.token);
+    if (result['success']) {
+      setState(() {
+        firstName = result['first_name'];
+        lastName = result['last_name'];
+        preferences = result['preferences'];
+      });
+      await fetchImages();
+    } else {
+      setState(() { error = result['message']; });
+    }
+    setState(() { loading = false; });
+  }
+
+  Future<void> fetchImages() async {
+    for (final pref in preferences) {
+      if (!images.containsKey(pref)) {
+        final url = await apiService.getUnsplashImage(pref);
+        if (url != null) {
+          setState(() { images[pref] = url; });
+        }
+      }
+    }
+  }
+
+  String get initials {
+    if ((firstName ?? '').isEmpty && (lastName ?? '').isEmpty) return '';
+    String f = (firstName ?? '').isNotEmpty ? firstName![0] : '';
+    String l = (lastName ?? '').isNotEmpty ? lastName![0] : '';
+    return (f + l).toUpperCase();
+  }
+
+  void _logout() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final mainColor = const Color(0xFFD7BFA6); // Light brown
     return Scaffold(
-      appBar: AppBar(title: const Text('LutoMate Overview')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/cooking_icon.png', width: 80, height: 80),
-              const SizedBox(height: 24),
-              const Text(
-                'Welcome to LutoMate!',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF795548),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'You are now logged in. More features coming soon!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Color(0xFF6D4C41)),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Your JWT Token:',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.brown),
-              ),
-              const SizedBox(height: 8),
-              SelectableText(token, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: loading
+            ? const Center(child: CircularProgressIndicator())
+            : error != null
+                ? Center(child: Text(error!, style: const TextStyle(color: Colors.red)))
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top bar with profile and settings dropdown
+                      Container(
+                        color: mainColor,
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: Colors.white,
+                              child: Text(
+                                initials,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 24,
+                                  color: mainColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${firstName ?? ''} ${lastName ?? ''}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    'Search',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.settings, color: Colors.white),
+                              color: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              onSelected: (value) {
+                                if (value == 'profile') {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ProfilePage(
+                                        firstName: firstName ?? '',
+                                        lastName: lastName ?? '',
+                                        preferences: preferences,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                if (value == 'logout') _logout();
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'profile',
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.person, color: Color(0xFFD7BFA6)),
+                                      SizedBox(width: 8),
+                                      Text('Profile'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'logout',
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.logout, color: Color(0xFFD7BFA6)),
+                                      SizedBox(width: 8),
+                                      Text('Logout'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Search bar
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Type ingredients...',
+                            prefixIcon: Icon(Icons.search, color: mainColor),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Section title
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Today's popular searches",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Updated ${TimeOfDay.now().format(context)}',
+                              style: const TextStyle(color: Colors.black45, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Grid of preferences
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 1.2,
+                            ),
+                            itemCount: preferences.length,
+                            itemBuilder: (context, index) {
+                              final pref = preferences[index];
+                              final imgUrl = images[pref];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => CategoryDishesPage(category: pref, token: widget.token),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      imgUrl != null
+                                          ? Image.network(
+                                              imgUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Container(
+                                                color: Colors.grey[300],
+                                                child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
+                                              ),
+                                            )
+                                          : Container(
+                                              color: Colors.grey[300],
+                                              child: const Icon(Icons.fastfood, color: Color(0xFFD7BFA6), size: 40),
+                                            ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.black.withOpacity(0.2),
+                                              Colors.black.withOpacity(0.5),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
+                                      ),
+                                      Align(
+                                        alignment: Alignment.bottomLeft,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Text(
+                                            pref,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black54,
+                                                  blurRadius: 4,
+                                                  offset: Offset(1, 1),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
       ),
     );
   }

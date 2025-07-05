@@ -1,11 +1,14 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://lutomate.onrender.com/api/lutome';
+  String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'https://lutomate.onrender.com';
+  String get unsplashApiKey => dotenv.env['UNSPLASH_API_KEY'] ?? '';
 
+  // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final url = Uri.parse('$baseUrl/login');
+    final url = Uri.parse('$baseUrl/api/lutome/login');
     try {
       final response = await http.post(
         url,
@@ -26,8 +29,9 @@ class ApiService {
     }
   }
 
+  // Register
   Future<Map<String, dynamic>> register(String firstName, String lastName, String email, String password, List<String> preferences) async {
-    final url = Uri.parse('$baseUrl/register');
+    final url = Uri.parse('$baseUrl/api/lutome/register');
     try {
       final response = await http.post(
         url,
@@ -55,5 +59,91 @@ class ApiService {
     } catch (e) {
       return {'success': false, 'message': 'Error connecting to server'};
     }
+  }
+
+  // Get user profile
+  Future<Map<String, dynamic>> getProfile(String token) async {
+    final url = Uri.parse('$baseUrl/api/lutome/me');
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'first_name': data['first_name'],
+          'last_name': data['last_name'],
+          'preferences': List<String>.from(data['preferences'] ?? []),
+        };
+      } else {
+        return {'success': false, 'message': 'Failed to load profile'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // Get AI dishes for category
+  Future<Map<String, dynamic>> getDishes(String category, String token) async {
+    final url = Uri.parse('$baseUrl/api/lutome/recipes/ai_dishes?category=${Uri.encodeComponent(category)}');
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'dishes': List<String>.from(data['dishes'] ?? []),
+        };
+      } else {
+        return {'success': false, 'message': 'Failed to load dishes'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // Get AI ingredients for dish
+  Future<Map<String, dynamic>> getIngredients(String dish, String token) async {
+    final url = Uri.parse('$baseUrl/api/lutome/recipes/ai_ingredients?dish=${Uri.encodeComponent(dish)}');
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'ingredients': List<String>.from(data['ingredients'] ?? []),
+        };
+      } else {
+        return {'success': false, 'message': 'Failed to load ingredients'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
+  // Get Unsplash image
+  Future<String?> getUnsplashImage(String query) async {
+    if (unsplashApiKey.isEmpty) return null;
+    final url = Uri.parse(
+      'https://api.unsplash.com/search/photos?query=${Uri.encodeComponent(query)}&client_id=$unsplashApiKey&per_page=1',
+    );
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['results'] != null && data['results'].isNotEmpty) {
+          return data['results'][0]['urls']['regular'];
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 } 
