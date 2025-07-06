@@ -74,21 +74,41 @@ def ai_ingredients(dish: str = Query(None, description="Dish name"), db: Session
             continue
         if re.match(r"^\*?\*?reference\*?\*?:?", line.lower()):
             section = "reference"
-            # Try to extract the link if present
-            ref_match = re.search(r"(https?://\S+)", line)
-            if ref_match:
-                reference = ref_match.group(1)
-            else:
-                # If no URL found, try to extract text after colon
-                reference = line.split(":", 1)[-1].strip()
+            # Try to extract a known recipe/video site URL
+            allowed_domains = ["youtube.com", "allrecipes.com", "foodnetwork.com", "tasty.co", "epicurious.com", "panlasangpinoy.com", "yummly.com", "simplyrecipes.com", "bbcgoodfood.com", "tasteofhome.com"]
+            urls = re.findall(r"https?://\S+", line)
+            found = False
+            for url in urls:
+                for domain in allowed_domains:
+                    if domain in url:
+                        reference = url
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                # fallback: any url
+                if urls:
+                    reference = urls[0]
+                else:
+                    reference = line.split(":", 1)[-1].strip()
             continue
         elif section == "reference" and line.strip():
-            # Continue reading reference section for multi-line URLs
-            ref_match = re.search(r"(https?://\S+)", line)
-            if ref_match and not reference:
-                reference = ref_match.group(1)
-            elif not reference:
-                reference = line.strip()
+            urls = re.findall(r"https?://\S+", line)
+            found = False
+            for url in urls:
+                for domain in allowed_domains:
+                    if domain in url:
+                        reference = url
+                        found = True
+                        break
+                if found:
+                    break
+            if not found and not reference:
+                if urls:
+                    reference = urls[0]
+                else:
+                    reference = line.strip()
         if section == "ingredients" and (line.startswith("-") or line.startswith("*") or line[:1].isdigit()):
             # Remove bullet, number, or asterisk
             name = re.sub(r"^[\-*\d.\s]+", "", line)
@@ -128,13 +148,131 @@ def ai_suggest(prompt: str = Body(..., embed=True)):
         raise HTTPException(status_code=500, detail="AI service unavailable or error.")
     return {"suggestion": response}
 
+
 @router.post("/ai_conversation")
 def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depends(get_db)):
     print(f"[ai_conversation] User input: {user_input!r}")
-    
-    # Smart prompt to understand user intent and suggest dishes with cooking instructions
+
+    # Try to detect if the user is asking for a specific dish
+    dish_patterns = [
+        r"i want to cook (.+)",
+        r"how to cook (.+)",
+        r"show me how to make (.+)",
+        r"how do i make (.+)",
+        r"give me the recipe for (.+)",
+        r"recipe for (.+)",
+        r"how to make (.+)",
+        r"make (.+)",
+    ]
+    dish_name = None
+    for pat in dish_patterns:
+        m = re.match(pat, user_input.strip().lower())
+        if m:
+            dish_name = m.group(1).strip().rstrip("?.!")
+            break
+
+    if dish_name:
+        # Only return the specific dish as the suggestion
+        # Call the AI for details about this dish (reuse ai_ingredients logic)
+        # Try DB first
+        db_recipe = db.query(models.Recipe).filter(models.Recipe.title.ilike(dish_name)).first()
+        if db_recipe and db_recipe.ingredients and db_recipe.steps:
+            suggestion = {
+                "name": db_recipe.title,
+                "description": db_recipe.description if hasattr(db_recipe, 'description') else '',
+                "ingredients": db_recipe.ingredients.replace('\n', ', '),
+                "time": db_recipe.estimated_time or '',
+                "difficulty": db_recipe.difficulty or '',
+                "instructions": db_recipe.steps.replace('\n', '\n'),
+                "reference": getattr(db_recipe, 'reference', ''),
+            }
+        else:
+            # Call Gemini for this dish
+            prompt = (
+                f"For the dish '{dish_name}', provide:\n"
+                f"1. A bullet list of main ingredients.\n"
+                f"2. Step-by-step instructions on how to cook it.\n"
+                f"3. A YouTube video link or recipe website link for this dish.\n"
+                f"Format:\n"
+                f"Ingredients:\n- ...\nSteps:\n1. ...\nReference: https://youtube.com/watch?v=... or https://allrecipes.com/recipe/..."
+            )
+            response = crud.call_gemini_api(prompt)
+            if not response:
+                raise HTTPException(status_code=500, detail="AI service unavailable or error.")
+            # Parse Gemini's response
+            ingredients, steps, reference = [], [], ""
+            section = None
+            for line in response.split('\n'):
+                line = line.strip()
+                if re.match(r"^\*?\*?ingredients\*?\*?:?", line.lower()):
+                    section = "ingredients"
+                    continue
+                if re.match(r"^\*?\*?steps\*?\*?:?", line.lower()):
+                    section = "steps"
+                    continue
+                if re.match(r"^\*?\*?reference\*?\*?:?", line.lower()):
+                    section = "reference"
+                    # Try to extract a known recipe/video site URL
+                    allowed_domains = ["youtube.com", "allrecipes.com", "foodnetwork.com", "tasty.co", "epicurious.com", "panlasangpinoy.com", "yummly.com", "simplyrecipes.com", "bbcgoodfood.com", "tasteofhome.com"]
+                    urls = re.findall(r"https?://\S+", line)
+                    found = False
+                    for url in urls:
+                        for domain in allowed_domains:
+                            if domain in url:
+                                reference = url
+                                found = True
+                                break
+                        if found:
+                            break
+                    if not found:
+                        # fallback: any url
+                        if urls:
+                            reference = urls[0]
+                        else:
+                            reference = line.split(":", 1)[-1].strip()
+                    continue
+                elif section == "reference" and line.strip():
+                    urls = re.findall(r"https?://\S+", line)
+                    found = False
+                    for url in urls:
+                        for domain in allowed_domains:
+                            if domain in url:
+                                reference = url
+                                found = True
+                                break
+                        if found:
+                            break
+                    if not found and not reference:
+                        if urls:
+                            reference = urls[0]
+                        else:
+                            reference = line.strip()
+                if section == "ingredients" and (line.startswith("-") or line.startswith("*") or line[:1].isdigit()):
+                    name = re.sub(r"^[\-*\d.\s]+", "", line)
+                    if name:
+                        ingredients.append(name)
+                elif section == "steps" and (line[:1].isdigit() or line.startswith("-") or line.startswith("*")):
+                    step = re.sub(r"^[\-*\d.\s]+", "", line)
+                    if step:
+                        steps.append(step)
+            suggestion = {
+                "name": dish_name,
+                "description": f"Recipe for {dish_name}",
+                "ingredients": ', '.join(ingredients),
+                "time": '',
+                "difficulty": '',
+                "instructions": '\n'.join(steps),
+                "reference": reference,
+            }
+        return {
+            "user_input": user_input,
+            "suggestions": [suggestion],
+            "ai_response": f"Direct dish request for: {dish_name}"
+        }
+
+    # Otherwise, use the normal AI multi-suggestion logic
     prompt = f"""
-    User said: "{user_input}"
+    User said: \"{user_input}\"
     
     Based on this request, suggest 3-5 specific dishes that would be perfect for the user.
     For each dish, provide:
@@ -164,15 +302,12 @@ def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depen
     
     And so on...
     """
-    
     response = crud.call_gemini_api(prompt)
     if not response:
         raise HTTPException(status_code=500, detail="AI service unavailable or error.")
-    
     # Parse the response into structured data
     dishes = []
     current_dish = {}
-    
     for line in response.split('\n'):
         line = line.strip()
         if line.startswith('DISH') and line[4].isdigit():
@@ -191,10 +326,8 @@ def ai_conversation(user_input: str = Body(..., embed=True), db: Session = Depen
             current_dish['difficulty'] = line.split(':', 1)[1].strip()
         elif line.startswith('Instructions:'):
             current_dish['instructions'] = line.split(':', 1)[1].strip()
-    
     if current_dish:
         dishes.append(current_dish)
-    
     return {
         "user_input": user_input,
         "suggestions": dishes,

@@ -12,6 +12,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   String _email = '';
   String _password = '';
   bool _loading = false;
@@ -78,17 +80,16 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  Future<void> _signInWithGoogle() async {
+    // TODO: Implement Google Sign-In functionality
+    print('Google Sign-In pressed');
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width.clamp(320.0, 440.0);
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Login'),
-        backgroundColor: const Color(0xFFD7BFA6),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: Center(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -153,22 +154,47 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   Form(
                     key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 8),
                         TextFormField(
+                          controller: _emailController,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.email, color: Color(0xFF8D6E63)),
+                            prefixIcon: Icon(Icons.email, color: Color(0xFF8D6E63), size: 20),
                             filled: true,
                             fillColor: Color(0xFFF8F5F2),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFD7BFA6), width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFF8D6E63), width: 2),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Colors.red, width: 2),
+                            ),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
-                          onChanged: (v) => _email = v,
+                          style: TextStyle(fontSize: 14),
+                          onChanged: (v) {
+                            setState(() {
+                              _email = v;
+                            });
+                          },
                           validator: (v) {
                             if (v == null || v.isEmpty) {
                               return 'Enter email';
@@ -181,13 +207,15 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
+                          controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock, color: Color(0xFF8D6E63)),
+                            prefixIcon: Icon(Icons.lock, color: Color(0xFF8D6E63), size: 20),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
                                 color: Color(0xFF8D6E63),
+                                size: 20,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -200,9 +228,32 @@ class _LoginPageState extends State<LoginPage> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFD7BFA6), width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFF8D6E63), width: 2),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Colors.red, width: 2),
+                            ),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
+                          style: TextStyle(fontSize: 14),
                           obscureText: _obscurePassword,
-                          onChanged: (v) => _password = v,
+                          onChanged: (v) {
+                            setState(() {
+                              _password = v;
+                            });
+                          },
                           validator: (v) => v == null || v.isEmpty ? 'Enter password' : null,
                         ),
                         const SizedBox(height: 24),
@@ -211,15 +262,15 @@ class _LoginPageState extends State<LoginPage> {
                             : SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.login, color: Colors.white),
-                                  label: const Text('Login'),
+                                  icon: const Icon(Icons.login, color: Colors.white, size: 20),
+                                  label: const Text('Login', style: TextStyle(fontSize: 16)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Color(0xFFD7BFA6),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.all(Radius.circular(18)),
                                     ),
-                                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
                                     elevation: 2,
                                     padding: const EdgeInsets.symmetric(vertical: 14),
                                   ),
@@ -230,10 +281,88 @@ class _LoginPageState extends State<LoginPage> {
                                   },
                                 ),
                               ),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: Color(0xFFD7BFA6),
+                                thickness: 1,
+                                endIndent: 10,
+                              ),
+                            ),
+                            const Text(
+                              '-or-',
+                              style: TextStyle(
+                                color: Color(0xFF8D6E63),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: Color(0xFFD7BFA6),
+                                thickness: 1,
+                                indent: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFFD7BFA6), width: 1.5),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(18)),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              elevation: 0,
+                            ),
+                            onPressed: _signInWithGoogle,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  child: Image.asset(
+                                    'assets/google.png',
+                                    width: 20,
+                                    height: 20,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Sign In with Google',
+                                  style: TextStyle(
+                                    color: Color(0xFF8D6E63),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         TextButton.icon(
-                          icon: const Icon(Icons.person_add, color: Color(0xFF8D6E63)),
-                          label: const Text('Create an account'),
+                          icon: const Icon(Icons.person_add, color: Color(0xFF8D6E63), size: 18),
+                          label: const Text(
+                            'Create an account',
+                            style: TextStyle(
+                              color: Color(0xFF8D6E63),
+                              fontSize: 14,
+                            ),
+                          ),
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(builder: (_) => const RegisterPage()),

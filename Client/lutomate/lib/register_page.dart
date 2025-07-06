@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 
 const List<String> foodOptions = [
-  'Chicken', 'Spicy', 'Seafood', 'Fried', 'Vegetarian', 'Beef', 'Pasta', 'Soup', 'Rice', 'Dessert', 'Vegan', 'Pork', 'Fish', 'Salad', 'Noodles', 'Grilled', 'Steamed', 'Egg', 'Bread', 'Fruit', 'Snacks', 'Healthy', 'Sweet', 'Sour', 'Savory', 'BBQ', 'Soup', 'Stew', 'Tofu', 'Dairy', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Asian', 'Western', 'Filipino', 'Italian', 'Mexican', 'Indian', 'Korean', 'Japanese', 'Chinese', 'American', 'Mediterranean', 'Street Food', 'Fast Food', 'Home Cooked', 'Exotic', 'Comfort Food', 'Finger Food', 'Appetizer', 'Main Dish', 'Side Dish', 'Drink', 'Smoothie', 'Juice', 'Coffee', 'Tea', 'Chocolate', 'Ice Cream', 'Cake', 'Pie', 'Cookies', 'Pastry', 'Sandwich', 'Burger', 'Pizza', 'Sushi', 'Dimsum', 'Curry', 'Adobo', 'Sinangag', 'Chicharon', 'Bangus', 'Lechon', 'Sisig', 'Kare-Kare', 'Laing', 'Bicol Express', 'Pancit', 'Lumpia', 'Halo-Halo', 'Turon', 'Bibingka', 'Puto', 'Kutsinta', 'Taho', 'Sinigang', 'Tinola', 'Menudo', 'Afritada', 'Caldereta', 'Dinuguan', 'Pakbet', 'Pinakbet', 'Ginataan', 'Ginisang', 'Inihaw', 'Nilaga', 'Paksiw', 'Pares', 'Tapsilog', 'Tocino', 'Longganisa', 'Bopis', 'Bulalo', 'Batchoy', 'Mami', 'Goto', 'Arroz Caldo', 'Champorado', 'Lomi', 'Maja Blanca', 'Sapin-Sapin', 'Ube', 'Macapuno', 'Langka', 'Mango', 'Banana', 'Pineapple', 'Watermelon', 'Melon', 'Avocado', 'Papaya', 'Guava', 'Lanzones', 'Rambutan', 'Durian', 'Mangosteen', 'Santol', 'Star Apple', 'Tamarind', 'Coconut', 'Jackfruit', 'Lychee', 'Pomelo', 'Sugarcane', 'Corn', 'Cassava', 'Sweet Potato', 'Taro', 'Yam', 'Squash', 'Pumpkin', 'Carrot', 'Potato', 'Tomato', 'Onion', 'Garlic', 'Ginger', 'Pepper', 'Chili', 'Okra', 'Eggplant', 'Ampalaya', 'Malunggay', 'Kangkong', 'Spinach', 'Lettuce', 'Cabbage', 'Broccoli', 'Cauliflower', 'Beans', 'Peas', 'Mushroom', 'Bell Pepper', 'Celery', 'Radish', 'Turnip', 'Zucchini', 'Cucumber', 'Apple', 'Orange', 'Grapes', 'Strawberry', 'Blueberry', 'Raspberry', 'Blackberry', 'Cherry', 'Peach', 'Plum', 'Pear', 'Apricot', 'Kiwi', 'Lemon', 'Lime', 'Grapefruit', 'Pomegranate', 'Fig', 'Date', 'Persimmon', 'Quince', 'Cranberry', 'Gooseberry', 'Mulberry', 'Boysenberry', 'Elderberry', 'Currant', 'Soursop', 'Sapote', 'Tamarillo', 'Dragonfruit', 'Passionfruit', 'Mangosteen', 'Salak', 'Longan', 'Jujube', 'Medlar', 'Miracle Fruit', 'Noni', 'Rose Apple', 'Sweetsop', 'Breadfruit', 'Chempedak', 'Duku', 'Langsat', 'Marang', 'Pulasan', 'Santol', 'Sugar Apple', 'Tamarind', 'Velvet Apple', 'Wampi', 'Yantok', 'Ziziphus', 'Other'
+  'Chicken', 'Beef', 'Pork', 'Fish', 'Seafood', 'Vegetarian', 'Vegan', 'Rice', 'Noodles',
+  'Soup', 'Salad', 'Egg', 'Bread', 'Snacks', 'Dessert', 'BBQ', 'Grilled', 'Fried',
+  'Pasta', 'Pizza', 'Burger', 'Sandwich', 'Sushi', 'Dimsum', 'Adobo', 'Sinigang',
+  'Kare-Kare', 'Lechon', 'Sisig', 'Pancit', 'Lumpia', 'Halo-Halo', 'Turon', 'Bibingka',
+  'Ice Cream', 'Cake', 'Fruit', 'Coffee', 'Tea', 'Juice', 'Other',
 ];
 
 class RegisterPage extends StatefulWidget {
@@ -32,7 +36,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void _nextStep() {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _step = 2;
+        _step++;
       });
     }
   }
@@ -142,9 +146,341 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildStep1() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: Center(
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E9E1),
+                      borderRadius: BorderRadius.circular(60),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.brown.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Image.asset('assets/cooking_icon.png', width: 70, height: 70),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Icon(Icons.restaurant_menu, color: Color(0xFFD7BFA6), size: 24),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          child: Icon(Icons.emoji_food_beverage, color: Color(0xFFD7BFA6), size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'LutoMate',
+                    style: TextStyle(
+                      color: Color(0xFF8D6E63),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email, color: Color(0xFF8D6E63)),
+              filled: true,
+              fillColor: Color(0xFFF8F5F2),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onChanged: (v) => _email = v,
+            validator: (v) {
+              if (v == null || v.isEmpty) {
+                return 'Enter email';
+              }
+              if (!_isValidEmail(v)) {
+                return 'Enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: Icon(Icons.lock, color: Color(0xFF8D6E63)),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: Color(0xFF8D6E63),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
+              filled: true,
+              fillColor: Color(0xFFF8F5F2),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            obscureText: _obscurePassword,
+            onChanged: (v) => _password = v,
+            validator: (v) => v == null || v.isEmpty ? 'Enter password' : null,
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.arrow_forward, color: Colors.white),
+              label: const Text('Next'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFD7BFA6),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _nextStep,
+            ),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: Divider(
+                  color: Color(0xFFD7BFA6),
+                  thickness: 1,
+                  endIndent: 10,
+                ),
+              ),
+              const Text(
+                '-or-',
+                style: TextStyle(
+                  color: Color(0xFF8D6E63),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                ),
+              ),
+              Expanded(
+                child: Divider(
+                  color: Color(0xFFD7BFA6),
+                  thickness: 1,
+                  indent: 10,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFD7BFA6), width: 1.5),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                elevation: 0,
+              ),
+              onPressed: () {
+                // TODO: Implement Google Sign Up
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: Image.asset(
+                      'assets/google.png',
+                      width: 20,
+                      height: 20,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Sign up with Google',
+                    style: TextStyle(
+                      color: Color(0xFF8D6E63),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            icon: const Icon(Icons.login, color: Color(0xFF8D6E63)),
+            label: const Text('Already have an account? Login'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep2() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: Center(
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E9E1),
+                      borderRadius: BorderRadius.circular(60),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.brown.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Image.asset('assets/cooking_icon.png', width: 70, height: 70),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Icon(Icons.restaurant_menu, color: Color(0xFFD7BFA6), size: 24),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          child: Icon(Icons.emoji_food_beverage, color: Color(0xFFD7BFA6), size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'LutoMate',
+                    style: TextStyle(
+                      color: Color(0xFF8D6E63),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            decoration: InputDecoration(
+              labelText: 'First Name',
+              prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
+              filled: true,
+              fillColor: Color(0xFFF8F5F2),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onChanged: (v) => _firstName = v,
+            validator: (v) => v == null || v.isEmpty ? 'Enter first name' : null,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            decoration: InputDecoration(
+              labelText: 'Last Name',
+              prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
+              filled: true,
+              fillColor: Color(0xFFF8F5F2),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onChanged: (v) => _lastName = v,
+            validator: (v) => v == null || v.isEmpty ? 'Enter last name' : null,
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.arrow_forward, color: Colors.white),
+              label: const Text('Next'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFD7BFA6),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _nextStep,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF8D6E63)),
+            label: const Text('Back'),
+            onPressed: () {
+              setState(() {
+                _step = 1;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3() {
+    final start = _foodPage * _pageSize;
+    final end = ((_foodPage + 1) * _pageSize).clamp(0, foodOptions.length);
+    final pageOptions = foodOptions.sublist(start, end);
+    final totalPages = (foodOptions.length / _pageSize).ceil();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 24.0),
@@ -195,131 +531,6 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
-        Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 8),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'First Name',
-                  prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
-                  filled: true,
-                  fillColor: Color(0xFFF8F5F2),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onChanged: (v) => _firstName = v,
-                validator: (v) => v == null || v.isEmpty ? 'Enter first name' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Last Name',
-                  prefixIcon: Icon(Icons.person, color: Color(0xFF8D6E63)),
-                  filled: true,
-                  fillColor: Color(0xFFF8F5F2),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onChanged: (v) => _lastName = v,
-                validator: (v) => v == null || v.isEmpty ? 'Enter last name' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email, color: Color(0xFF8D6E63)),
-                  filled: true,
-                  fillColor: Color(0xFFF8F5F2),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onChanged: (v) => _email = v,
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return 'Enter email';
-                  }
-                  if (!_isValidEmail(v)) {
-                    return 'Enter a valid email address';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: Icon(Icons.lock, color: Color(0xFF8D6E63)),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: Color(0xFF8D6E63),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Color(0xFFF8F5F2),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                obscureText: _obscurePassword,
-                onChanged: (v) => _password = v,
-                validator: (v) => v == null || v.isEmpty ? 'Enter password' : null,
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.arrow_forward, color: Colors.white),
-                  label: const Text('Next'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFD7BFA6),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(18)),
-                    ),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    elevation: 2,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: _nextStep,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton.icon(
-                icon: const Icon(Icons.login, color: Color(0xFF8D6E63)),
-                label: const Text('Already have an account? Login'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep2() {
-    final start = _foodPage * _pageSize;
-    final end = ((_foodPage + 1) * _pageSize).clamp(0, foodOptions.length);
-    final pageOptions = foodOptions.sublist(start, end);
-    final totalPages = (foodOptions.length / _pageSize).ceil();
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
         const Text(
           'What foods do you like?',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF795548)),
@@ -346,7 +557,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (_selectedPreferences.length < 5) {
                       _selectedPreferences.add(food);
                     } else {
-                      // Show a SnackBar if trying to select more than 5
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('You can select up to 5 preferences only.'),
@@ -414,7 +624,7 @@ class _RegisterPageState extends State<RegisterPage> {
           label: const Text('Back'),
           onPressed: () {
             setState(() {
-              _step = 1;
+              _step = 2;
             });
           },
         ),
@@ -434,12 +644,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width.clamp(320.0, 440.0);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register'),
-        backgroundColor: const Color(0xFFD7BFA6),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
       backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
@@ -452,7 +656,11 @@ class _RegisterPageState extends State<RegisterPage> {
               padding: const EdgeInsets.all(24.0),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
-                child: _step == 1 ? _buildStep1() : _buildStep2(),
+                child: _step == 1
+                    ? _buildStep1()
+                    : _step == 2
+                        ? _buildStep2()
+                        : _buildStep3(),
               ),
             ),
           ),
