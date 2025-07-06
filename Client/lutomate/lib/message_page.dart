@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'dish_details_page.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 class MessagePage extends StatefulWidget {
   final String token;
@@ -198,22 +199,22 @@ class _MessagePageState extends State<MessagePage> {
                 if (validReference != null && validReference.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: InkWell(
-                      onTap: () async {
-                        final url = Uri.parse(validReference!);
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Cannot open link: $validReference')),
-                          );
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          const Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final url = Uri.parse(validReference!);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Cannot open link: $validReference')),
+                                );
+                              }
+                            },
                             child: Text(
                               validReference!,
                               style: const TextStyle(
@@ -224,8 +225,20 @@ class _MessagePageState extends State<MessagePage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy, size: 18, color: Color(0xFF8D6E63)),
+                          tooltip: 'Copy to clipboard',
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(text: validReference!));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Copied to clipboard!')),
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 

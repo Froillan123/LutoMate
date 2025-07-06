@@ -201,4 +201,62 @@ class ApiService {
       return {'success': false, 'message': 'Error: $e'};
     }
   }
+
+  // Update user preferences
+  Future<Map<String, dynamic>> updateProfilePreferences(String token, List<String> preferences) async {
+    final url = Uri.parse('$baseUrl/api/lutome/update');
+    try {
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'preferences': preferences}),
+      );
+      if (response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        String message = 'Failed to update preferences';
+        try {
+          final data = json.decode(response.body);
+          if (data is Map && data['detail'] != null) {
+            message = data['detail'].toString();
+          }
+        } catch (_) {}
+        return {'success': false, 'message': message};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error connecting to server'};
+    }
+  }
+
+  // Update user info (first and last name)
+  Future<Map<String, dynamic>> updateProfileInfo(String token, String firstName, String lastName) async {
+    final url = Uri.parse('$baseUrl/api/lutome/update');
+    try {
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'first_name': firstName, 'last_name': lastName}),
+      );
+      if (response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        String message = 'Failed to update profile';
+        try {
+          final data = json.decode(response.body);
+          if (data is Map && data['detail'] != null) {
+            message = data['detail'].toString();
+          }
+        } catch (_) {}
+        return {'success': false, 'message': message};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error connecting to server'};
+    }
+  }
 } 

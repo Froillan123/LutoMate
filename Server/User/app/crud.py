@@ -133,19 +133,20 @@ def update_user(db: Session, user_id: UUID, update: schemas.UserCreate):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         return None
-    if update.first_name:
+    # Only update fields that are not None and not empty (for strings)
+    if update.first_name is not None and update.first_name != '':
         user.first_name = update.first_name
-    if update.last_name:
+    if update.last_name is not None and update.last_name != '':
         user.last_name = update.last_name
-    if update.email:
+    if update.email is not None and update.email != '':
         user.email = update.email
-    if update.role:
+    if update.role is not None and update.role != '':
         user.role = update.role
-    if update.status:
+    if update.status is not None and update.status != '':
         user.status = update.status
     if update.preferences is not None:
         user.preferences = update.preferences
-    if update.password:
+    if update.password is not None and update.password != '':
         user.password = get_password_hash(update.password)
     db.commit()
     db.refresh(user)

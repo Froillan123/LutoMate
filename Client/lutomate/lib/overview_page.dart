@@ -238,22 +238,22 @@ class _OverviewPageState extends State<OverviewPage> {
                       // Top bar with profile and settings dropdown
                       Container(
                         color: mainColor,
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                         child: Row(
                           children: [
                             CircleAvatar(
-                              radius: 28,
+                              radius: 22,
                               backgroundColor: Colors.white,
                               child: Text(
                                 initials,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 24,
+                                  fontSize: 18,
                                   color: mainColor,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,22 +262,24 @@ class _OverviewPageState extends State<OverviewPage> {
                                     '${firstName ?? ''} ${lastName ?? ''}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 20,
+                                      fontSize: 16,
                                       color: Colors.white,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 1),
                                   Text(
                                     _currentIndex == 0
                                         ? 'Home'
                                         : _currentIndex == 1
                                             ? 'Popular Foods'
                                             : _currentIndex == 2
-                                                ? 'Feeds'
-                                                : '',
+                                                ? 'AI Chat'
+                                                : _currentIndex == 3
+                                                    ? 'Feeds'
+                                                    : '',
                                     style: const TextStyle(
                                       color: Colors.white70,
-                                      fontSize: 16,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ],
@@ -365,7 +367,7 @@ class _OverviewPageState extends State<OverviewPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.message),
-            label: 'Message AI',
+            label: 'AI Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.rss_feed),
@@ -433,7 +435,7 @@ class _MessageTabState extends State<_MessageTab> {
               child: Row(
                 children: const [
                   Text(
-                    'Message AI',
+                    'AI Chat',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 24,

@@ -3,15 +3,15 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
 
 class UserBase(BaseModel):
-    first_name: str
-    last_name: str
-    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
     role: Optional[str] = 'user'
     status: Optional[str] = 'active'
     preferences: Optional[List[str]] = []
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None
 
 class UserOut(UserBase):
     id: UUID

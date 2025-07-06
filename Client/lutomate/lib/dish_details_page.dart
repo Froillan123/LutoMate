@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 
 class DishDetailsPage extends StatefulWidget {
   final String dish;
@@ -285,32 +286,34 @@ class _DishDetailsPageState extends State<DishDetailsPage> {
     final trimmed = reference.trim();
     final isUrl = trimmed.startsWith('http://') || trimmed.startsWith('https://');
     if (isUrl) {
-      return InkWell(
-        onTap: () async {
-          final url = Uri.parse(trimmed);
-          if (await canLaunchUrl(url)) {
-            await launchUrl(url, mode: LaunchMode.externalApplication);
-          } else {
-            // Show error if can't launch
-            // Use a BuildContext if needed
-          }
-        },
-        child: Row(
-          children: [
-            Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                trimmed,
-                style: const TextStyle(
-                  color: Color(0xFF1976D2),
-                  decoration: TextDecoration.underline,
-                  fontSize: 16,
-                ),
+      return Row(
+        children: [
+          Icon(Icons.link, color: Color(0xFF1976D2), size: 16),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              trimmed,
+              style: const TextStyle(
+                color: Color(0xFF1976D2),
+                decoration: TextDecoration.underline,
+                fontSize: 16,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 18, color: Color(0xFF8D6E63)),
+            tooltip: 'Copy to clipboard',
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: trimmed));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Copied to clipboard!')),
+                );
+              }
+            },
+          ),
+        ],
       );
     } else {
       return Text(
