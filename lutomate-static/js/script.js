@@ -124,6 +124,12 @@ function animateOnScroll() {
 
 // Set initial styles for animation
 document.addEventListener('DOMContentLoaded', () => {
+    // Set current year in copyright
+    const currentYearElement = document.getElementById('current-year');
+    if (currentYearElement) {
+        currentYearElement.textContent = new Date().getFullYear();
+    }
+    
     const features = document.querySelectorAll('.feature-card');
     const steps = document.querySelectorAll('.step');
     
